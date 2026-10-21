@@ -735,8 +735,8 @@ final class MetalHostView: NSView {
         // Over the session control the remote pointer stays where it left the picture.
         if !overSessionControl(point) {
             input.mouseMoved(event)
-            // Hidden while the remote user types: show it again as soon as the mouse moves
-            // (hidden again if the host doesn't confirm).
+            // Hidden by an app there: show it again as soon as the mouse moves (hidden again if
+            // the host doesn't confirm).
             if session?.cursor.state == .hidden { session?.cursor.unhide() }
         }
         showRemoteCursor(at: point)

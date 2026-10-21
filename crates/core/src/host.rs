@@ -1442,33 +1442,74 @@ impl SessionControl {
         if self.cursor_wish.wanted.swap(show, Ordering::AcqRel) == show || !self.ctx.video {
             return;
         }
-        let (wish, stream) = (self.cursor_wish.clone(), self.stream.clone());
-        // ScreenCaptureKit can take a while to apply it: never wait for that on the runtime. One
-        // update at a time, each applying the latest wish to the stream there is then (a display
-        // switch holds the same lock while it replaces the stream).
-        tokio::task::spawn_blocking(move || {
-            let _one_at_a_time = wish.apply.lock().unwrap();
-            let Some(capturer) = stream.capturer() else { return };
-            let show = wish.wanted.load(Ordering::Acquire);
-            let started = std::time::Instant::now();
-            match capturer.set_shows_cursor(show) {
-                Ok(()) => tracing::debug!(show, ms = started.elapsed().as_secs_f64() * 1000.0, "cursor in video"),
-                Err(e) => tracing::warn!("show cursor in video: {e:#}"),
-            }
-        });
+        self.cursor_wish.apply_soon(&self.stream);
     }
 }
+
+/// Waits before applying the cursor wish again after ScreenCaptureKit failed to (it can stop
+/// answering for seconds while the displays are rearranged).
+const CURSOR_RETRIES: [Duration; 3] = [Duration::from_millis(500), Duration::from_secs(2), Duration::from_secs(5)];
 
 /// Whether the video should show the cursor, and the lock that applies it one change at a time.
 #[derive(Clone)]
 struct CursorWish {
     wanted: Arc<AtomicBool>,
     apply: Arc<Mutex<()>>,
+    /// Numbers the updates that apply the wish: one that fails tries again only while it's the
+    /// newest.
+    updates: Arc<AtomicU64>,
 }
 
 impl Default for CursorWish {
     fn default() -> Self {
-        Self { wanted: Arc::new(AtomicBool::new(true)), apply: Arc::default() }
+        Self { wanted: Arc::new(AtomicBool::new(true)), apply: Arc::default(), updates: Arc::default() }
+    }
+}
+
+impl CursorWish {
+    /// Applies the latest wish to the stream in `slot`, in the background: ScreenCaptureKit can
+    /// take a while to apply it, and the runtime never waits for that.
+    fn apply_soon(&self, slot: &Arc<StreamSlot>) {
+        let update = self.updates.fetch_add(1, Ordering::AcqRel) + 1;
+        // Weakly: the stream of a session that ends stops then, not after the retries.
+        let (wish, slot) = (self.clone(), Arc::downgrade(slot));
+        tokio::task::spawn_blocking(move || {
+            wish.apply_latest(update, std::thread::sleep, |show| {
+                let capturer = slot.upgrade()?.capturer()?;
+                let started = Instant::now();
+                let applied = capturer.set_shows_cursor(show);
+                if applied.is_ok() {
+                    tracing::debug!(show, ms = started.elapsed().as_secs_f64() * 1000.0, "cursor in video");
+                }
+                Some(applied)
+            });
+        });
+    }
+
+    /// Applies the latest wish with `apply` to the stream there is then (it says None if there's
+    /// none: the next one starts with the wish), one update at a time: a display switch holds
+    /// the same lock while it replaces the stream. If that fails, tries again after each of
+    /// [`CURSOR_RETRIES`] (`wait` waits, without the lock), unless an update newer than `update`
+    /// started: that one applies the wish as it is then, and tries again itself.
+    fn apply_latest(&self, update: u64, mut wait: impl FnMut(Duration), mut apply: impl FnMut(bool) -> Option<Result<()>>) {
+        let mut retries = CURSOR_RETRIES.iter();
+        loop {
+            let applied = {
+                let _one_at_a_time = self.apply.lock().unwrap();
+                apply(self.wanted.load(Ordering::Acquire))
+            };
+            let Some(Err(e)) = applied else { return };
+            if self.updates.load(Ordering::Acquire) != update {
+                tracing::warn!("show cursor in video: {e:#}");
+                return;
+            }
+            let Some(&pause) = retries.next() else {
+                tracing::warn!("show cursor in video: {e:#}; giving up");
+                return;
+            };
+            tracing::warn!("show cursor in video: {e:#}; trying again in {} ms", pause.as_millis());
+            wait(pause);
+        }
     }
 }
 
@@ -3305,7 +3346,9 @@ impl Streamer {
                 && let Some(capturer) = self.stream.capturer()
                 && let Err(e) = capturer.set_shows_cursor(wanted)
             {
-                tracing::warn!("show cursor in video: {e:#}");
+                // Tried again in the background, once this switch lets go of the lock.
+                tracing::warn!("show cursor in video: {e:#}; trying again");
+                self.cursor.apply_soon(&self.stream);
             }
         }
         self.input.set_display(display_id);
@@ -4068,6 +4111,74 @@ mod tests {
         assert_eq!(retry.failed(t0 + TILER_WARN_INTERVAL).1, Some(22));
         retry.succeeded();
         assert_eq!(retry.failed(t0 + TILER_WARN_INTERVAL).0, t0 + TILER_WARN_INTERVAL + TILER_RETRY);
+    }
+
+    /// Changes the cursor wish as a session does: the update that applies it gets a number.
+    fn change_wish(wish: &CursorWish, show: bool) -> u64 {
+        wish.wanted.store(show, Ordering::Release);
+        wish.updates.fetch_add(1, Ordering::AcqRel) + 1
+    }
+
+    #[test]
+    fn a_failed_cursor_update_is_tried_again() {
+        let wish = CursorWish::default();
+        let update = change_wish(&wish, false);
+        // ScreenCaptureKit doesn't answer twice, then applies it. Each try holds the lock (one
+        // update at a time); the waits between don't (a display switch may go on meanwhile).
+        let (mut tries, mut waits) = (Vec::new(), Vec::new());
+        wish.apply_latest(
+            update,
+            |pause| {
+                assert!(wish.apply.try_lock().is_ok());
+                waits.push(pause);
+            },
+            |show| {
+                assert!(wish.apply.try_lock().is_err());
+                tries.push(show);
+                Some(if tries.len() < 3 { Err(anyhow::anyhow!("timed out")) } else { Ok(()) })
+            },
+        );
+        assert_eq!(tries, [false; 3]);
+        assert_eq!(waits, CURSOR_RETRIES[..2]);
+
+        // One that keeps failing gives up after the last retry.
+        let update = change_wish(&wish, true);
+        let (mut tries, mut waits) = (0, Vec::new());
+        wish.apply_latest(update, |pause| waits.push(pause), |_| {
+            tries += 1;
+            Some(Err(anyhow::anyhow!("timed out")))
+        });
+        assert_eq!((tries, waits), (1 + CURSOR_RETRIES.len(), CURSOR_RETRIES.to_vec()));
+    }
+
+    #[test]
+    fn a_newer_cursor_update_takes_over_trying_again() {
+        let wish = CursorWish::default();
+        let update = change_wish(&wish, false);
+        // The wish changes back while the failed update waits: its next try applies that, and
+        // when it fails too, it leaves trying again to the newer update.
+        let (mut tries, mut waits) = (Vec::new(), 0);
+        wish.apply_latest(
+            update,
+            |_| {
+                waits += 1;
+                change_wish(&wish, true);
+            },
+            |show| {
+                tries.push(show);
+                Some(Err(anyhow::anyhow!("timed out")))
+            },
+        );
+        assert_eq!((tries, waits), (vec![false, true], 1));
+
+        // Without a stream there's nothing to try again (the next one starts with the wish).
+        let update = change_wish(&wish, false);
+        let mut tries = 0;
+        wish.apply_latest(update, |_| panic!("waited without a stream"), |_| {
+            tries += 1;
+            None
+        });
+        assert_eq!(tries, 1);
     }
 
     /// A full-range NV12 frame, every byte from `value(plane, x_byte, y)`.

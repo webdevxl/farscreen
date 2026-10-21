@@ -164,6 +164,9 @@ isn't repeated under **Recent**.
 - While you control a Mac, every key goes to it, including ⌘Q, ⌘W, ⌘H, Tab and Esc, and, with
   **Control → Send System Shortcuts to Remote Mac** (on by default), also system shortcuts such
   as ⌘Tab and ⌘Space.
+- Typing doesn't hide the other Mac's pointer while you control it. (Text fields hide the pointer
+  until the mouse moves, and macOS counts only that Mac's own mouse or trackpad, so it would stay
+  hidden.)
 - **Release** gives your keyboard and mouse back to your own Mac without giving up control:
   press **⌃⌥⌘**, or click **Release** on the session control. Anything held on the other Mac is
   let go, and in full screen your menu bar and Dock come back. To carry on, click the remote

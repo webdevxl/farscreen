@@ -1,6 +1,7 @@
 //! Screen capture with ScreenCaptureKit. Frames arrive as IOSurface-backed NV12 pixel buffers
 //! that go straight to the hardware encoder without a CPU copy.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -257,8 +258,12 @@ fn dirty_rects(info: &NSDictionary<NSString, NSNumber>) -> Option<Vec<[u32; 4]>>
 pub struct Capturer {
     stream: Retained<SCStream>,
     /// Kept to change settings later: `updateConfiguration` replaces the whole configuration,
-    /// and a fresh one would silently fall back to 1080p video-range frames.
+    /// and a fresh one would silently fall back to 1080p video-range frames. It says what the
+    /// stream uses: an update that fails puts the old setting back.
     config: Retained<SCStreamConfiguration>,
+    /// The last update failed. One that never answered may still go through, so what the stream
+    /// uses isn't known until an update works.
+    unsure: AtomicBool,
     _output: Retained<StreamOutput>,
     _delegate: Retained<StreamDelegate>,
     _queue: DispatchRetained<DispatchQueue>,
@@ -323,21 +328,28 @@ impl Capturer {
                 .map_err(|e| anyhow!("add stream output: {}", e.localizedDescription()))?;
             wait_completion(|block| stream.startCaptureWithCompletionHandler(Some(block)))
                 .context("start capture")?;
-            Ok(Self { stream, config, _output: output, _delegate: delegate, _queue: queue })
+            Ok(Self { stream, config, unsure: AtomicBool::new(false), _output: output, _delegate: delegate, _queue: queue })
         }
     }
 
     /// Draws the cursor into the frames or leaves it out, without restarting capture. Blocks
-    /// until ScreenCaptureKit applies it, so call it off the async runtime.
+    /// until ScreenCaptureKit applies it, so call it off the async runtime. After a failure the
+    /// next call sends its setting even if it's the old one.
     pub fn set_shows_cursor(&self, show: bool) -> Result<()> {
         unsafe {
-            if self.config.showsCursor() == show {
+            let before = self.config.showsCursor();
+            if before == show && !self.unsure.load(Ordering::Acquire) {
                 return Ok(());
             }
             self.config.setShowsCursor(show);
             let (stream, config) = (&self.stream, &self.config);
-            wait_completion(|block| stream.updateConfiguration_completionHandler(config, Some(block)))
-                .context("update capture configuration")
+            let result = wait_completion(|block| stream.updateConfiguration_completionHandler(config, Some(block)))
+                .context("update capture configuration");
+            if result.is_err() {
+                self.config.setShowsCursor(before);
+            }
+            self.unsure.store(result.is_err(), Ordering::Release);
+            result
         }
     }
 }

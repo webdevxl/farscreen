@@ -1018,9 +1018,10 @@ final class RemoteCursor {
         state = new
     }
 
-    /// The host hides its cursor while someone types there and shows it again on the next mouse
-    /// move, which our move causes: show the last shape right away. If an app there keeps it
-    /// hidden (a game, an app drawing its own), the host stays silent: hide it again then.
+    /// An app there may hide the cursor and show it again on the next mouse move, which our move
+    /// causes: show the last shape right away. If it stays hidden (a game, an app drawing its
+    /// own), the host stays silent: hide it again then. (Typing doesn't hide it there while we
+    /// control: macOS would show it again only for that Mac's own mouse.)
     func unhide() {
         guard state == .hidden, mayUnhide, let last = lastShape else { return }
         mayUnhide = false

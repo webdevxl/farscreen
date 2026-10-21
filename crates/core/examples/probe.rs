@@ -96,6 +96,15 @@
 //! display's own scale). `--trace` writes a JSON line per finished update: {update, n,
 //! capture_local_us, decoded_us, tiles, bytes, new, full, motion} (n null where unreadable; new:
 //! the first update showing n; bytes null until the frame probe sees encoded sizes).
+//!
+//! The cursor a controlling viewer draws:
+//!
+//!   probe HOST --control --seconds 600 --cursor-log cursor.jsonl
+//!
+//! writes a JSON line for every cursor message from the host as it arrives: {t, unix, event:
+//! "shape", id, w, h, hot, bytes, file} (the PNG is saved as `file` in `cursor.jsonl.shapes/`),
+//! {t, unix, event: "cursor", state: shape|hidden|inVideo, id}, and control and the end of the
+//! session.
 
 use std::collections::HashMap;
 use std::io::{BufRead, Read, Seek, Write};
@@ -144,6 +153,8 @@ struct Args {
     only_dht: bool,
     /// Through the DHT, connect only once the host punched or answered.
     wait_for_answer: bool,
+    /// Every cursor message from the host goes here.
+    cursor_log: Option<String>,
 }
 
 enum Barcode {
@@ -196,6 +207,7 @@ fn parse_args() -> Result<Args, String> {
         microphone: false,
         only_dht: false,
         wait_for_answer: false,
+        cursor_log: None,
     };
     let mut target = None;
     let mut arrangement = Arrangement::EXTEND;
@@ -234,12 +246,13 @@ fn parse_args() -> Result<Args, String> {
             "--microphone" => a.microphone = true,
             "--only-dht" => a.only_dht = true,
             "--wait-for-answer" => a.wait_for_answer = true,
+            "--cursor-log" => a.cursor_log = Some(args.next().ok_or("--cursor-log needs a file")?),
             _ if target.is_none() && !arg.starts_with('-') => target = Some(arg),
             _ => return Err(format!("unexpected argument {arg}")),
         }
     }
     a.target = target.ok_or(
-        "usage: probe <host[:port]> [--seconds N] [--max WxH] [--fps N] [--virtual WxH[@2x] [--arrange extend|main|only] [--refresh HZ]] [--control [--script FILE] [--input-latency N --rect X,Y,W,H] [--display WxH]] [--barcode-log FILE | --barcode X,Y,W,H [--barcode-scale S]] [--trace FILE] [--microphone] [--only-dht [--wait-for-answer]]\n       probe host [--port N] [--no-server] [--no-video] [--seconds N]",
+        "usage: probe <host[:port]> [--seconds N] [--max WxH] [--fps N] [--virtual WxH[@2x] [--arrange extend|main|only] [--refresh HZ]] [--control [--script FILE] [--input-latency N --rect X,Y,W,H] [--display WxH]] [--barcode-log FILE | --barcode X,Y,W,H [--barcode-scale S]] [--trace FILE] [--cursor-log FILE] [--microphone] [--only-dht [--wait-for-answer]]\n       probe host [--port N] [--no-server] [--no-video] [--seconds N]",
     )?;
     if (a.script.is_some() || a.latency.is_some()) && !a.control {
         return Err("--script and --input-latency need --control".into());
@@ -293,8 +306,21 @@ fn main() -> ExitCode {
         }
     }
 
+    // Written as the events come, whatever the probe is busy with.
+    let cursor_log = match args.cursor_log.as_deref().map(CursorLog::create).transpose() {
+        Ok(log) => log.map(Mutex::new),
+        Err(e) => {
+            eprintln!("--cursor-log: {e}");
+            return ExitCode::from(2);
+        }
+    };
     let (tx, events) = mpsc::channel();
-    let core = match Core::start(Arc::new(move |e| drop(tx.send(e)))) {
+    let core = match Core::start(Arc::new(move |e| {
+        if let Some(log) = &cursor_log {
+            log.lock().unwrap().event(&e);
+        }
+        drop(tx.send(e))
+    })) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("start: {e:#}");
@@ -324,6 +350,45 @@ fn main() -> ExitCode {
     core.disconnect(id);
     // Skip tearing down the runtime and capture threads; the OS cleans up.
     std::process::exit(code)
+}
+
+/// Every cursor message from the host, one JSON line each, and the shapes' PNGs in a folder
+/// beside it (`--cursor-log`).
+struct CursorLog {
+    file: std::io::BufWriter<std::fs::File>,
+    shapes: std::path::PathBuf,
+    started: Instant,
+    /// Shapes saved so far: names them apart, as ids start over with each grant.
+    saved: u32,
+}
+
+impl CursorLog {
+    fn create(path: &str) -> std::io::Result<Self> {
+        let shapes = std::path::PathBuf::from(format!("{path}.shapes"));
+        std::fs::create_dir_all(&shapes)?;
+        Ok(Self { file: std::io::BufWriter::new(std::fs::File::create(path)?), shapes, started: Instant::now(), saved: 0 })
+    }
+
+    fn event(&mut self, e: &Event) {
+        let t = self.started.elapsed().as_secs_f64();
+        let unix = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+        let line = match e {
+            Event::CursorShape { id, png, width, height, hot_x, hot_y, .. } => {
+                self.saved += 1;
+                let file = format!("{}-{id}.png", self.saved);
+                if let Err(e) = std::fs::write(self.shapes.join(&file), png) {
+                    eprintln!("--cursor-log: save {file}: {e}");
+                }
+                serde_json::json!({"t": t, "unix": unix, "event": "shape", "id": id, "w": width, "h": height, "hot": [hot_x, hot_y], "bytes": png.len(), "file": file})
+            }
+            Event::Cursor { state, id, .. } => serde_json::json!({"t": t, "unix": unix, "event": "cursor", "state": state, "id": id}),
+            Event::Control { active, reason, .. } => serde_json::json!({"t": t, "unix": unix, "event": "control", "active": active, "reason": reason}),
+            Event::Ended { error, .. } => serde_json::json!({"t": t, "unix": unix, "event": "ended", "error": error}),
+            _ => return,
+        };
+        let _ = writeln!(self.file, "{line}");
+        let _ = self.file.flush();
+    }
 }
 
 /// What the host shows the probe.

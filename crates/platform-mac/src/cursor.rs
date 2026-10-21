@@ -10,9 +10,18 @@
 //! - `CGCursorIsVisible` (deprecated), which goes false while an app hides the cursor (e.g. while
 //!   typing). The seed does not change on hide.
 //!
-//! Both are looked up at run time, so a future macOS without them degrades instead of failing to
-//! launch: without the seed, the shape is re-read on a timer; without visibility, the cursor counts
-//! as always visible.
+//! Typing into a text field hides the cursor until the mouse moves (the app asks the window server
+//! to "obscure" it), and only a real mouse or trackpad shows it again: the moves the host posts
+//! for the viewer don't. So the first time a viewer typed, the pointer it draws would vanish for
+//! the rest of the session. While the monitor runs it keeps the window server from obscuring the
+//! cursor at all (`SLSDisableCursorObscure`, private: a lease of at most half a second, renewed),
+//! for every app on this Mac, its own user's included; the lease lapses within a moment of the
+//! monitor stopping. A cursor already obscured when the monitor starts (typed into before control
+//! began) counts as visible until it has been seen visible, since the viewer can't bring it back.
+//!
+//! All of these are looked up at run time, so a future macOS without them degrades instead of
+//! failing to launch: without the seed, the shape is re-read on a timer; without visibility, or
+//! without the lease (a hide could be typing's), the cursor counts as always visible.
 
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::{CStr, c_char, c_int, c_void};
@@ -23,6 +32,7 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use objc2::AllocAnyThread;
+use objc2::rc::autoreleasepool;
 use objc2_app_kit::{NSBitmapImageFileType, NSBitmapImageRep, NSCursor};
 use objc2_foundation::NSDictionary;
 
@@ -58,9 +68,14 @@ const MAX_SHAPES: usize = 64;
 /// Consecutive failed shape reads before the cursor counts as unavailable. Reads happen on seed
 /// changes and every [`SAFETY_READ`], so this spans at least a few hundred milliseconds.
 const MISSES_UNAVAILABLE: u32 = 3;
+/// How long each renewal keeps typing from hiding the cursor: the longest the window server allows.
+const UNOBSCURED_FOR: f64 = 0.5;
+/// Renewed this often, so even a late poll renews it in time.
+const UNOBSCURED_RENEW: Duration = Duration::from_millis(100);
 
 type SeedFn = unsafe extern "C" fn() -> c_int;
 type VisibleFn = unsafe extern "C" fn() -> c_int;
+type DisableObscureFn = unsafe extern "C" fn(f64);
 
 unsafe extern "C" {
     fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
@@ -83,6 +98,18 @@ fn cursor_seed() -> Option<c_int> {
 pub fn cursor_visible() -> Option<bool> {
     let f = lookup(c"CGCursorIsVisible");
     (!f.is_null()).then(|| unsafe { std::mem::transmute::<*mut c_void, VisibleFn>(f)() } != 0)
+}
+
+/// Keeps the window server from obscuring the cursor (hiding it until the mouse moves, as text
+/// fields ask on every key) for `seconds`, at most [`UNOBSCURED_FOR`]; a later call extends it.
+/// It applies to every app. False if this macOS can't.
+fn keep_unobscured(seconds: f64) -> bool {
+    let f = lookup(c"SLSDisableCursorObscure");
+    if f.is_null() {
+        return false;
+    }
+    unsafe { std::mem::transmute::<*mut c_void, DisableObscureFn>(f)(seconds) };
+    true
 }
 
 /// The cursor currently on screen (whichever app set it), at 2x resolution.
@@ -124,6 +151,10 @@ pub struct CursorTracker {
     next_id: u32,
     current: Option<u32>,
     visible: bool,
+    /// The cursor has been seen visible. Until then it counts as visible even when hidden: most
+    /// likely it was obscured by typing before the monitor started, and nothing the viewer does
+    /// would bring it back.
+    seen_visible: bool,
     /// What the viewer was last told: `Some(Some(id))` shown, `Some(None)` hidden.
     told: Option<Option<u32>>,
     unavailable: bool,
@@ -132,7 +163,16 @@ pub struct CursorTracker {
 
 impl Default for CursorTracker {
     fn default() -> Self {
-        Self { known: Vec::new(), next_id: 0, current: None, visible: true, told: None, unavailable: false, misses: 0 }
+        Self {
+            known: Vec::new(),
+            next_id: 0,
+            current: None,
+            visible: true,
+            seen_visible: false,
+            told: None,
+            unavailable: false,
+            misses: 0,
+        }
     }
 }
 
@@ -174,7 +214,8 @@ impl CursorTracker {
     }
 
     pub fn visibility(&mut self, visible: bool, out: &mut Vec<CursorUpdate>) {
-        self.visible = visible;
+        self.seen_visible |= visible;
+        self.visible = visible || !self.seen_visible;
         self.tell(out);
     }
 
@@ -209,15 +250,24 @@ impl CursorMonitor {
                 let mut out = Vec::new();
                 let mut seed = None;
                 let mut last_read: Option<Instant> = None;
+                let mut renewed: Option<Instant> = None;
+                let mut unobscured = false;
                 while !stop.load(Ordering::Relaxed) {
+                    if renewed.is_none_or(|t| t.elapsed() >= UNOBSCURED_RENEW) {
+                        unobscured = keep_unobscured(UNOBSCURED_FOR);
+                        renewed = Some(Instant::now());
+                    }
                     let new_seed = cursor_seed();
                     let due = last_read.is_none_or(|t| t.elapsed() >= SAFETY_READ);
                     if new_seed != seed || due {
                         seed = new_seed;
                         last_read = Some(Instant::now());
-                        tracker.shape(current_cursor(), &mut out);
+                        // A read leaves autoreleased images behind (every representation of the
+                        // cursor, about 0.6 MB): drained here, not when control ends.
+                        tracker.shape(autoreleasepool(|_| current_cursor()), &mut out);
                     }
-                    tracker.visibility(cursor_visible().unwrap_or(true), &mut out);
+                    let visible = !unobscured || cursor_visible().unwrap_or(true);
+                    tracker.visibility(visible, &mut out);
                     for update in out.drain(..) {
                         on_update(update);
                     }
@@ -292,6 +342,23 @@ mod tests {
     }
 
     #[test]
+    fn a_cursor_hidden_from_the_start_counts_as_shown_until_seen() {
+        // Typed into before control began: only a hand on the host's mouse would show it again,
+        // so the viewer would never see its pointer.
+        let mut t = CursorTracker::default();
+        let mut out = Vec::new();
+        t.shape(Some(image(1, 4.5)), &mut out);
+        t.visibility(false, &mut out);
+        t.visibility(false, &mut out);
+        assert!(matches!(out[..], [CursorUpdate::Shape { .. }, CursorUpdate::Show(1)]), "{out:?}");
+        out.clear();
+        // Once it has been seen, hiding counts again.
+        t.visibility(true, &mut out);
+        t.visibility(false, &mut out);
+        assert_eq!(out, [CursorUpdate::Hide]);
+    }
+
+    #[test]
     fn missing_shape_is_reported_once_after_several_misses() {
         let mut t = CursorTracker::default();
         let mut out = Vec::new();
@@ -335,5 +402,6 @@ mod tests {
         }
         assert!(cursor_seed().is_some(), "CGSCurrentCursorSeed is exported on macOS 26");
         assert!(cursor_visible().is_some(), "CGCursorIsVisible is exported on macOS 26");
+        assert!(!lookup(c"SLSDisableCursorObscure").is_null(), "SLSDisableCursorObscure is exported on macOS 26");
     }
 }

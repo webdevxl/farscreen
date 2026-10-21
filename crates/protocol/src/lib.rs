@@ -403,7 +403,7 @@ impl ControlReason {
 pub enum CursorState {
     /// Show the shape sent as [`HostMsg::CursorShape`] with this id.
     Shape(u32),
-    /// The host's cursor is hidden (e.g. while typing).
+    /// An app on the host hid its cursor.
     Hidden,
     /// The host can't report its cursor; it is drawn into the video.
     InVideo,
