@@ -822,7 +822,7 @@ macos/.build/release/LanKVM --snapshot /tmp/lankvm-shots
 
 ## License
 
-MIT, as declared in [`Cargo.toml`](Cargo.toml).
+MIT. See [LICENSE](LICENSE).
 
 <p align="center">
   <sub>Farscreen: open-source remote desktop for Mac. If it's useful to you, a ⭐ helps other Mac users find it.</sub>
