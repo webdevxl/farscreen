@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Builds target/release/LanKVMMicrophone.driver, the Audio Server plug-in that gives a Mac the
-# "LanKVM Microphone" input (macos/AudioDriver), and checks it with macos/AudioDriver/driver-test.c,
-# which loads it as coreaudiod would. scripts/bundle.sh puts it into LanKVM.app;
+# "Farscreen Microphone" input (macos/AudioDriver), and checks it with macos/AudioDriver/driver-test.c,
+# which loads it as coreaudiod would. scripts/bundle.sh puts it into Farscreen.app;
 # scripts/install-audio-driver.sh (or This Mac → Microphone → Install in the app) installs it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# The driver's own version: LanKVM offers to update an installed driver only when this changes
+# The driver's own version: Farscreen offers to update an installed driver only when this changes
 # (installing asks for an administrator password and restarts the Mac's audio).
-DRIVER_VERSION="1"
+DRIVER_VERSION="2"
 SRC="macos/AudioDriver"
 OUT="target/release/LanKVMMicrophone.driver"
 TEST_BIN="target/release/lankvm-audio-driver-test"

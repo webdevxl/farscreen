@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Launches a second LanKVM on this Mac that acts as a separate device, to test a real
+# Launches a second Farscreen on this Mac that acts as a separate device, to test a real
 # host <-> viewer connection without a second Mac.
 #
-# It runs a copy of the app ("LanKVM 2", bundle id dev.lankvm.LanKVM.second) with its own UDP
+# It runs a copy of the app ("Farscreen 2", bundle id dev.lankvm.LanKVM.second) with its own UDP
 # port, certificate, trust lists, log and privacy grants, so the two instances are as separate
 # as two Macs: they show up as two apps in the Dock and macOS tracks their permissions apart.
 #
 #   ./scripts/second-instance.sh            # start it (the normal instance keeps port 47800)
 #   ./scripts/second-instance.sh --restart  # quit the running second instance first
 #
-# Then, in LanKVM 2: Connect -> 127.0.0.1:47800 (views the first instance). To view LanKVM 2
-# from the first instance instead, connect to 127.0.0.1:$PORT; LanKVM 2 then needs its own
+# Then, in Farscreen 2: Connect -> 127.0.0.1:47800 (views the first instance). To view Farscreen 2
+# from the first instance instead, connect to 127.0.0.1:$PORT; Farscreen 2 then needs its own
 # Screen Recording permission.
 #
-# Env: LANKVM_APP (default target/release/LanKVM.app), PORT (default 47801),
+# Env: LANKVM_APP (default target/release/Farscreen.app), PORT (default 47801),
 #      DATA_DIR (default ~/Library/Application Support/lankvm-2; pairings persist here).
 # Test settings pass through to it when set: LANKVM_NO_PROMPTS, LANKVM_INJECT, LANKVM_CONNECT,
 # LANKVM_CONNECT_DISPLAY, LANKVM_LOG_STATS, LANKVM_KEEP_WARM_MS, LANKVM_TILES,
@@ -21,8 +21,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-SRC="${LANKVM_APP:-target/release/LanKVM.app}"
-APP="$(dirname "$SRC")/LanKVM-2.app"
+SRC="${LANKVM_APP:-target/release/Farscreen.app}"
+APP="$(dirname "$SRC")/Farscreen-2.app"
 BUNDLE_ID="dev.lankvm.LanKVM.second"
 PORT="${PORT:-47801}"
 DATA_DIR="${DATA_DIR:-$HOME/Library/Application Support/lankvm-2}"
@@ -46,8 +46,8 @@ fi
 rm -rf "$APP"
 cp -R "$SRC" "$APP"
 plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$APP/Contents/Info.plist"
-plutil -replace CFBundleName -string "LanKVM 2" "$APP/Contents/Info.plist"
-plutil -replace CFBundleDisplayName -string "LanKVM 2" "$APP/Contents/Info.plist"
+plutil -replace CFBundleName -string "Farscreen 2" "$APP/Contents/Info.plist"
+plutil -replace CFBundleDisplayName -string "Farscreen 2" "$APP/Contents/Info.plist"
 if [[ -n "${LANKVM_SIGN_IDENTITY:-}" ]]; then
     codesign --force --options runtime --preserve-metadata=entitlements --identifier "$BUNDLE_ID" --sign "$LANKVM_SIGN_IDENTITY" "$APP"
 else
@@ -66,10 +66,10 @@ open -n "$APP" --env LANKVM_PORT="$PORT" --env LANKVM_DATA_DIR="$DATA_DIR" ${ext
 
 for _ in {1..50}; do [[ -n "$(holder)" ]] && break; sleep 0.1; done
 if [[ -z "$(holder)" ]]; then
-    echo "error: LanKVM 2 didn't start listening; see $DATA_DIR/lankvm.log" >&2
+    echo "error: Farscreen 2 didn't start listening; see $DATA_DIR/lankvm.log" >&2
     exit 1
 fi
-echo "LanKVM 2: pid $(holder), UDP $PORT"
+echo "Farscreen 2: pid $(holder), UDP $PORT"
 echo "  data: $DATA_DIR"
 echo "  log:  $DATA_DIR/lankvm.log"
 echo "To view the first instance from it: Connect -> 127.0.0.1:47800"

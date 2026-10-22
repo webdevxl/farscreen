@@ -148,7 +148,7 @@ struct SidebarFooter: View {
             Image(systemName: "antenna.radiowaves.left.and.right")
                 .foregroundStyle(core.canShareScreen == true ? Color.lkSuccess : Color.lkWarning)
             VStack(alignment: .leading, spacing: 1) {
-                Text(core.thisMac?.name ?? "LanKVM")
+                Text(core.thisMac?.name ?? "Farscreen")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.lkText)
                     .lineLimit(1)
@@ -178,7 +178,7 @@ struct StartErrorView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label("LanKVM couldn't start", systemImage: "exclamationmark.triangle")
+            Label("Farscreen couldn't start", systemImage: "exclamationmark.triangle")
         } description: {
             Text(message)
         }

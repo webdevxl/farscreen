@@ -474,7 +474,7 @@ async fn run(network: Network, target: &str, mut ctx: RunCtx) -> Result<()> {
                 } else {
                     tokio::time::timeout(CONNECT_TIMEOUT, network.endpoint.connect(addr, "lankvm")?)
                         .await
-                        .map_err(|_| anyhow!("no answer from {addr} — is LanKVM running there?"))?
+                        .map_err(|_| anyhow!("no answer from {addr} — is Farscreen running there?"))?
                         .context("connect")?
                 };
                 (conn, addr, internet, None)
@@ -559,7 +559,7 @@ async fn run(network: Network, target: &str, mut ctx: RunCtx) -> Result<()> {
                 // Hosts from protocol 1 said only "protocol version N not supported (host speaks 1)".
                 if reason.starts_with("protocol version ") {
                     let on = if paired.is_some() { within.clone() } else { addr.to_string() };
-                    bail!("LanKVM on {on} is older than this Mac's. Update LanKVM there, then quit and reopen it.");
+                    bail!("Farscreen on {on} is older than this Mac's. Update Farscreen there, then quit and reopen it.");
                 }
                 bail!("{reason}");
             }
@@ -723,7 +723,7 @@ async fn share_microphone(
                                 Err((MicrophoneReason::CAPTURE_FAILED, format!("Couldn't open this Mac's microphone: {e}")))
                             })
                         }
-                        None => Err((MicrophoneReason::NO_INPUT, "This copy of LanKVM shares no microphone.".to_string())),
+                        None => Err((MicrophoneReason::NO_INPUT, "This copy of Farscreen shares no microphone.".to_string())),
                     };
                     match opened {
                         Ok(guard) => sending = Some(guard),
@@ -922,7 +922,7 @@ async fn connect_over_internet(network: &Network, target: &str, addr: SocketAddr
         // is over, which is after it is over here: see `turned_away`.
         Ok(Err((false, Some(e)))) => Err(e).context("connect"),
         Ok(Err((false, None))) | Err(_) => bail!(
-            "No answer from {target}. On that Mac, check that internet access is on (This Mac in LanKVM) and that its router \
+            "No answer from {target}. On that Mac, check that internet access is on (This Mac in Farscreen) and that its router \
              forwards UDP port {} to it. Its public address may also have changed.",
             addr.port()
         ),
@@ -996,15 +996,15 @@ async fn connect_to_paired(
         match via {
             Via::Local => bail!(
                 "This Mac doesn't know where {within} is on the local network yet. Type its address in Connect once (This Mac in \
-                 LanKVM on {within} shows it), then try again."
+                 Farscreen on {within} shows it), then try again."
             ),
             Via::Internet => bail!(
                 "{who} hasn't told this Mac how to reach it over the internet. Turn on internet access on {within} (This Mac in \
-                 LanKVM), connect to it once on the same network, then try again."
+                 Farscreen), connect to it once on the same network, then try again."
             ),
             Via::Auto => bail!(
                 "This Mac doesn't know where {within} is yet. Type its address in Connect once, on the same network (This Mac in \
-                 LanKVM on {within} shows it). To reach it from anywhere, also turn on internet access there."
+                 Farscreen on {within} shows it). To reach it from anywhere, also turn on internet access there."
             ),
         }
     }
@@ -1239,7 +1239,7 @@ async fn connect_at(network: &Network, name: &str, address: &str, key: Option<Ac
         .await
         .map_err(|_| {
             anyhow!(
-                "No answer from {name} at {address}. On that Mac, check that internet access is on (This Mac in LanKVM) and that \
+                "No answer from {name} at {address}. On that Mac, check that internet access is on (This Mac in Farscreen) and that \
                  its router forwards UDP port {} to it. Its public address may also have changed.",
                 addr.port()
             )

@@ -416,7 +416,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "virtual":
             // LanKVM's virtual displays use vendor 0x4C4B ("LK").
             screen = screens.first { CGDisplayVendorNumber(id($0)) == 0x4C4B } ?? {
-                FileHandle.standardError.write(Data("no LanKVM virtual display\n".utf8))
+                FileHandle.standardError.write(Data("no Farscreen virtual display\n".utf8))
                 exit(1)
             }()
         case let name where name.hasPrefix("display:"):
@@ -442,7 +442,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let f = options.frame
             frame = NSRect(x: screen.frame.minX + f.minX, y: screen.frame.maxY - f.minY - f.height, width: f.width, height: f.height)
             window = NSWindow(contentRect: frame, styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false, screen: screen)
-            window.title = "LanKVM Frame Source"
+            window.title = "Farscreen Frame Source"
         }
         // Shown on whatever Space is active, even over another app's full-screen Space, so the
         // test never depends on which Space was in front.

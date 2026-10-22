@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# LanKVM installer.
+# Farscreen installer.
 #
 # Checks this Mac, installs or updates what the build needs (Rust), verifies Xcode meets the
-# minimum version (and opens the App Store to update it if not), builds and signs LanKVM,
+# minimum version (and opens the App Store to update it if not), builds and signs Farscreen,
 # installs it into /Applications and opens it.
 #
-#   ./install.sh            install or update LanKVM
+#   ./install.sh            install or update Farscreen
 #   ./install.sh --check    only report what's missing; change nothing
 #
 # Environment: LANKVM_INSTALL_DIR (default /Applications), LANKVM_NO_OPEN=1 to skip launching.
@@ -64,14 +64,14 @@ ask() {
 
 step "Checking this Mac"
 if [[ "$(uname -m)" != "arm64" ]]; then
-    fail "LanKVM needs an Apple Silicon Mac (this one is $(uname -m))."
+    fail "Farscreen needs an Apple Silicon Mac (this one is $(uname -m))."
     exit 1
 fi
 MACOS="$(sw_vers -productVersion)"
 if version_ge "$MACOS" "$MIN_MACOS"; then
     ok "macOS $MACOS on Apple Silicon"
 else
-    fail "macOS $MACOS is too old; LanKVM needs macOS $MIN_MACOS or later."
+    fail "macOS $MACOS is too old; Farscreen needs macOS $MIN_MACOS or later."
     exit 1
 fi
 
@@ -142,7 +142,7 @@ persist_path() {
     local rc="$HOME/.zshrc"
     [[ "${SHELL:-}" == */bash ]] && rc="$HOME/.bash_profile"
     if ! grep -qs "opt/rustup/bin" "$rc"; then
-        printf '\n# Rust (Homebrew rustup), added by LanKVM install.sh\nexport PATH="%s:$HOME/.cargo/bin:$PATH"\n' "$RUSTUP_BREW_BIN" >>"$rc"
+        printf '\n# Rust (Homebrew rustup), added by Farscreen install.sh\nexport PATH="%s:$HOME/.cargo/bin:$PATH"\n' "$RUSTUP_BREW_BIN" >>"$rc"
         info "Added Rust to PATH in $rc"
     fi
 }
@@ -193,10 +193,10 @@ step "Checking code signing"
 if security find-identity -p codesigning 2>/dev/null | grep -qE '"(lankvm-dev|Apple Development[^"]*)"'; then
     ok "Signing identity: $(security find-identity -p codesigning | awk -F'"' '/Apple Development|lankvm-dev/ { print $2; exit }')"
 elif $CHECK_ONLY; then
-    warn "No signing identity. macOS would forget LanKVM's permissions after each update."
+    warn "No signing identity. macOS would forget Farscreen's permissions after each update."
     info "Create one with ./scripts/create-dev-cert.sh"
 else
-    warn "No signing identity. Without one, macOS forgets LanKVM's permissions after each update."
+    warn "No signing identity. Without one, macOS forgets Farscreen's permissions after each update."
     if ask "Create a local signing certificate now?"; then
         ./scripts/create-dev-cert.sh
     fi
@@ -214,7 +214,7 @@ fi
 
 # --- Build and install ---------------------------------------------------------------------
 
-step "Building LanKVM"
+step "Building Farscreen"
 ./scripts/bundle.sh
 
 step "Installing into $INSTALL_DIR"
@@ -223,18 +223,24 @@ if [[ ! -w "$INSTALL_DIR" ]]; then
     mkdir -p "$INSTALL_DIR"
     warn "No write access to /Applications; installing into $INSTALL_DIR"
 fi
-if pgrep -xq LanKVM; then
-    info "Quitting the running LanKVM…"
-    osascript -e 'quit app "LanKVM"' >/dev/null 2>&1 || pkill -x LanKVM || true
-    for _ in {1..20}; do pgrep -xq LanKVM || break; sleep 0.25; done
+# Farscreen used to be called LanKVM: the old app has the same bundle id, so it goes too.
+RUNNING='Farscreen|LanKVM'
+if pgrep -xq "$RUNNING"; then
+    info "Quitting the running Farscreen…"
+    osascript -e 'quit app id "dev.lankvm.LanKVM"' >/dev/null 2>&1 || pkill -x "$RUNNING" || true
+    for _ in {1..20}; do pgrep -xq "$RUNNING" || break; sleep 0.25; done
 fi
-rm -rf "$INSTALL_DIR/LanKVM.app"
-ditto target/release/LanKVM.app "$INSTALL_DIR/LanKVM.app"
-ok "Installed $INSTALL_DIR/LanKVM.app"
+if [[ -d "$INSTALL_DIR/LanKVM.app" ]]; then
+    rm -rf "$INSTALL_DIR/LanKVM.app"
+    ok "Removed $INSTALL_DIR/LanKVM.app (Farscreen's old name)"
+fi
+rm -rf "$INSTALL_DIR/Farscreen.app"
+ditto target/release/Farscreen.app "$INSTALL_DIR/Farscreen.app"
+ok "Installed $INSTALL_DIR/Farscreen.app"
 
 if [[ "${LANKVM_NO_OPEN:-}" != "1" ]]; then
-    open "$INSTALL_DIR/LanKVM.app"
-    ok "Opened LanKVM"
+    open "$INSTALL_DIR/Farscreen.app"
+    ok "Opened Farscreen"
 fi
 
 echo

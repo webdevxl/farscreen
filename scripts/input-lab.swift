@@ -127,7 +127,7 @@ final class LabController: NSObject, NSWindowDelegate, NSTextViewDelegate {
         let f = options.frame
         let contentRect = NSRect(x: f.minX, y: screenHeight - f.minY - f.height, width: f.width, height: f.height)
         window = NSWindow(contentRect: contentRect, styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "LanKVM Input Lab"
+        window.title = "Farscreen Input Lab"
         window.isReleasedWhenClosed = false
 
         let textScroll = NSTextView.scrollableTextView()

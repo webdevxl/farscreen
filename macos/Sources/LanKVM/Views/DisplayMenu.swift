@@ -51,7 +51,7 @@ struct DisplayMenu: View {
         if !mayAdd {
             Text(info.displayUnavailable.isEmpty ? "\(host) can't add a display for this Mac." : info.displayUnavailable)
         }
-        Section("LanKVM Display") {
+        Section("Farscreen Display") {
             let preferred = controls.preferredArrangement(info)
             ForEach(RemoteDisplay.Arrangement.allCases) { arrangement in
                 check(Self.title(of: arrangement, host: host), on: arrangement == preferred) { controls.arrange(arrangement) }
@@ -65,8 +65,8 @@ struct DisplayMenu: View {
 
     /// A size for a display that fills a screen of this Mac; disabled when the host can't make it.
     private func screenItem(_ title: String, _ screen: ScreenFit, shown: RemoteDisplay, mayAdd: Bool) -> some View {
-        let note = DisplayLimits.tooLarge(width: screen.width, height: screen.height) ? " · too large for LanKVM"
-            : DisplayLimits.problem(width: screen.width, height: screen.height) != nil ? " · not a size LanKVM makes" : ""
+        let note = DisplayLimits.tooLarge(width: screen.width, height: screen.height) ? " · too large for Farscreen"
+            : DisplayLimits.problem(width: screen.width, height: screen.height) != nil ? " · not a size Farscreen makes" : ""
         return check("\(title) · \(screen.sizeText)\(note)", on: shown.sameSize(as: screen.display(shown.arrangement))) {
             controls.showVirtualDisplay(screen)
         }

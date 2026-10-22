@@ -183,7 +183,7 @@ mod tests {
         assert_eq!(method, b"get");
         assert_eq!(args.bytes_at(b"target"), Some(&[2u8; 20][..]));
         assert_eq!(bencode::decode(&q).unwrap().int_at(b"ro"), Some(1));
-        assert_eq!(bencode::decode(&q).unwrap().get(b"v"), None, "nothing says it's LanKVM");
+        assert_eq!(bencode::decode(&q).unwrap().get(b"v"), None, "nothing says it's Farscreen");
     }
 
     #[test]

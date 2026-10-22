@@ -59,8 +59,8 @@ final class CoreModel: ObservableObject {
     /// `displays`: two Macs added displays here, one of them still connected.
     /// `microphone`: LanKVM Microphone is installed, and Studio shares its microphone.
     func loadSampleState(screenAllowed: Bool, displays: Bool = false, internet: SampleInternet = .off, microphone: Bool = false) {
-        thisMac = ThisMac(name: "Alex's MacBook Pro", addresses: ["192.168.1.23", "10.0.0.7"], port: 47800, deviceId: "724e:b7c8:8a63:ada8")
-        var viewers = [Viewer(id: 1, name: "Studio", address: "192.168.1.31", deviceId: "9f12:0ab3:77c1:e402", controlling: screenAllowed,
+        thisMac = ThisMac(name: "Alex's MacBook Pro", addresses: ["198.51.100.23", "192.0.2.7"], port: 47800, deviceId: "724e:b7c8:8a63:ada8")
+        var viewers = [Viewer(id: 1, name: "Studio", address: "198.51.100.31", deviceId: "9f12:0ab3:77c1:e402", controlling: screenAllowed,
                               displayId: displays ? 5 : 1, virtualDisplay: displays, microphone: microphone)]
         var pairedViewers = [PairedDevice(fingerprint: "aa", deviceId: "9f12:0ab3:77c1:e402", name: "Studio")]
         if internet == .open || internet == .server {
@@ -88,19 +88,19 @@ final class CoreModel: ObservableObject {
             hosts: [
                 // Renamed, and reachable both ways.
                 PairedDevice(fingerprint: "bb", deviceId: "41de:93a0:c2f7:118b", name: "Mac mini", alias: "Office",
-                             localAddress: "192.168.1.40:47800", internetAddress: internet == .off ? nil : "198.51.100.17:47800",
+                             localAddress: "198.51.100.40:47800", internetAddress: internet == .off ? nil : "198.51.100.17:47800",
                              reachable: internet != .off),
                 // Through the server, a Mac is reachable without an address. Off the server, only
                 // on the local network.
-                PairedDevice(fingerprint: "cc", deviceId: "07b9:5c2e:a1d4:6f30", name: "Studio", localAddress: "192.168.1.31:47800",
+                PairedDevice(fingerprint: "cc", deviceId: "07b9:5c2e:a1d4:6f30", name: "Studio", localAddress: "198.51.100.31:47800",
                              reachable: internet == .server, connection: internet == .server ? .internet : .local),
             ]
         )
         recents = [
             // Paired Macs are listed apart: only one that never paired shows here.
-            RecentHost(address: "192.168.1.40", name: "Office", fingerprint: "bb"),
-            RecentHost(address: "192.168.1.31", name: "Studio", fingerprint: "cc"),
-            RecentHost(address: "192.168.1.52", name: "MacBook Air"),
+            RecentHost(address: "198.51.100.40", name: "Office", fingerprint: "bb"),
+            RecentHost(address: "198.51.100.31", name: "Studio", fingerprint: "cc"),
+            RecentHost(address: "198.51.100.52", name: "MacBook Air"),
         ]
         if internet == .server {
             // Connected to by name, through the server.
@@ -115,24 +115,24 @@ final class CoreModel: ObservableObject {
         case .off:
             InternetStatus()
         case .open:
-            InternetStatus(enabled: true, state: .mapped, externalAddress: "203.0.113.7:47800", localAddress: "192.168.1.23",
+            InternetStatus(enabled: true, state: .mapped, externalAddress: "203.0.113.7:47800", localAddress: "198.51.100.23",
                            publicAddress: "home.example.com", announced: ["home.example.com:47800", "203.0.113.7:47800"],
                            ignored: 37)
         case .setup:
-            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "192.168.1.23")
+            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "198.51.100.23")
         case .doubleNat:
-            InternetStatus(enabled: true, state: .problem, problem: .doubleNat, routerAddress: "192.168.0.12", localAddress: "192.168.1.23")
+            InternetStatus(enabled: true, state: .problem, problem: .doubleNat, routerAddress: "192.168.0.12", localAddress: "198.51.100.23")
         case .manual:
-            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "192.168.1.23",
+            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "198.51.100.23",
                            publicAddress: "home.example.com", announced: ["home.example.com:47800"], ignored: 4)
         case .server:
-            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "192.168.1.23", ignored: 12,
+            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "198.51.100.23", ignored: 12,
                            server: InternetServer(address: sampleServer, state: .registered, observed: "203.0.113.7:51234"))
         case .noServer:
-            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "192.168.1.23",
+            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "198.51.100.23",
                            server: InternetServer(address: sampleServer, state: .unreachable))
         case .dht, .dhtSymmetric:
-            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "192.168.1.23", ignored: 3,
+            InternetStatus(enabled: true, state: .problem, problem: .noResponse, localAddress: "198.51.100.23", ignored: 3,
                            server: InternetServer(address: "", state: .off),
                            dht: InternetDHT(enabled: true, state: .listed, observed: "203.0.113.7:47800",
                                             symmetric: sample == .dhtSymmetric, nodes: 212))
@@ -396,7 +396,7 @@ final class CoreModel: ObservableObject {
                 lk_set_microphone(id, true)
             } else {
                 session.microphone = .off
-                session.showToast("LanKVM may not use this Mac’s microphone · allow it in Privacy & Security → Microphone")
+                session.showToast("Farscreen may not use this Mac’s microphone · allow it in Privacy & Security → Microphone")
                 MicrophonePermission.openSettings()
             }
         }
@@ -407,7 +407,7 @@ final class CoreModel: ObservableObject {
         guard case .connected = session.phase else { return }
         if active {
             if session.microphone != .on {
-                session.showToast("Microphone on · apps on \(session.hostName) can use LanKVM Microphone")
+                session.showToast("Microphone on · apps on \(session.hostName) can use Farscreen Microphone")
             }
             session.microphone = .on
             session.microphoneUnavailable = nil
@@ -426,25 +426,25 @@ final class CoreModel: ObservableObject {
     /// audio restarts for a moment.
     func installMicrophoneDriver() {
         guard let bundled = MicrophoneDriver.bundled else {
-            microphoneDriverError = "This build of LanKVM doesn’t include LanKVM Microphone (scripts/bundle.sh adds it)."
+            microphoneDriverError = "This build of Farscreen doesn’t include Farscreen Microphone (scripts/bundle.sh adds it)."
             return
         }
         let target = MicrophoneDriver.installed.path
         changeMicrophoneDriver(
             "/bin/rm -rf \(Self.shellQuoted(target)) && /usr/bin/ditto \(Self.shellQuoted(bundled.path)) \(Self.shellQuoted(target))"
                 + " && /usr/sbin/chown -R root:wheel \(Self.shellQuoted(target)) && /usr/bin/killall coreaudiod",
-            prompt: "LanKVM wants to install LanKVM Microphone, so Macs that view this one can share their microphones here.")
+            prompt: "Farscreen wants to install Farscreen Microphone, so Macs that view this one can share their microphones here.")
     }
 
     /// Removes the LanKVM Microphone driver. Its microphone goes away for the apps using it.
     func removeMicrophoneDriver() {
         changeMicrophoneDriver("/bin/rm -rf \(Self.shellQuoted(MicrophoneDriver.installed.path)) && /usr/bin/killall coreaudiod",
-                               prompt: "LanKVM wants to remove LanKVM Microphone.")
+                               prompt: "Farscreen wants to remove Farscreen Microphone.")
     }
 
     /// Restarts this Mac's audio, which loads (or unloads) the driver.
     func restartAudio() {
-        changeMicrophoneDriver("/usr/bin/killall coreaudiod", prompt: "LanKVM wants to restart this Mac’s audio to load LanKVM Microphone.")
+        changeMicrophoneDriver("/usr/bin/killall coreaudiod", prompt: "Farscreen wants to restart this Mac’s audio to load Farscreen Microphone.")
     }
 
     /// Runs `command` as an administrator (macOS asks for the password), then waits for this Mac's
@@ -494,7 +494,7 @@ final class CoreModel: ObservableObject {
             }
             microphoneDriverBusy = false
             if MicrophoneDriver.isInstalled && !host.microphoneReady {
-                microphoneDriverError = "LanKVM Microphone is installed, but this Mac’s audio hasn’t loaded it. Restart Audio, or restart the Mac."
+                microphoneDriverError = "Farscreen Microphone is installed, but this Mac’s audio hasn’t loaded it. Restart Audio, or restart the Mac."
             }
         }
     }

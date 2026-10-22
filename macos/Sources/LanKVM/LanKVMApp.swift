@@ -13,7 +13,7 @@ struct LanKVMApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("LanKVM", id: "main") {
+        WindowGroup("Farscreen", id: "main") {
             ContentView()
                 .environmentObject(core)
                 .frame(minWidth: 760, minHeight: 520)
@@ -89,13 +89,13 @@ private struct ControlCommands: Commands {
             Toggle("Send System Shortcuts to Remote Mac", isOn: $sendSystemShortcuts)
             Text("⌘Tab, ⌘Space, Mission Control and screenshot keys go to the Mac you control.")
             Toggle("Send Trackpad Gestures to Remote Mac", isOn: $sendTrackpadGestures)
-            Text("Pinch, rotate and swipes go to the Mac you control. Mission Control and Spaces swipes need Accessibility for LanKVM here.")
+            Text("Pinch, rotate and swipes go to the Mac you control. Mission Control and Spaces swipes need Accessibility for Farscreen here.")
             Toggle("Share Clipboard", isOn: $shareClipboard)
             Text("While you control a Mac, what you copy on either one can be pasted on the other.")
             Toggle("Share Microphone", isOn: Binding(get: { session.map { $0.microphone != .off } ?? false },
                                                      set: { on in session.map { CoreModel.shared.setMicrophone(on, for: $0.id) } }))
                 .disabled(!connected)
-            Text("Apps on the Mac in front hear this Mac’s microphone as LanKVM Microphone.")
+            Text("Apps on the Mac in front hear this Mac’s microphone as Farscreen Microphone.")
             Divider()
             Toggle("Show Session Control", isOn: $showSessionControl)
         }
@@ -119,7 +119,7 @@ private struct HostMenu: View {
         if !core.host.virtualDisplays.isEmpty {
             if !core.host.viewers.isEmpty { Divider() }
             ForEach(core.host.virtualDisplays) { display in
-                Text("LanKVM Display for “\(display.owner)” · \(display.display.sizeText)"
+                Text("Farscreen Display for “\(display.owner)” · \(display.display.sizeText)"
                      + (display.inUse ? "" : " · kept for a minute in case “\(display.owner)” reconnects"))
             }
             // One: back to this Mac's own screen. Several: each on its own.
@@ -139,7 +139,7 @@ private struct HostMenu: View {
             Button("Disconnect All") { core.host.viewers.forEach(core.kick) }
             Divider()
         }
-        Button("Open LanKVM") {
+        Button("Open Farscreen") {
             NSApp.activate(ignoringOtherApps: true)
             NSApp.windows.first { $0.identifier?.rawValue.hasPrefix("main") == true }?.makeKeyAndOrderFront(nil)
         }

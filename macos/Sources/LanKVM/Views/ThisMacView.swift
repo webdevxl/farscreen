@@ -153,9 +153,9 @@ private struct ScreenSharingCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                     if core.canShareScreen == false {
                         VStack(alignment: .leading, spacing: 6) {
-                            Step(number: 1, text: "Open Privacy Settings. macOS doesn't list LanKVM there by itself.")
-                            Step(number: 2, text: "Drag LanKVM from the Finder window into the list, or click + and choose it.")
-                            Step(number: 3, text: "Make sure its switch is on, then relaunch LanKVM.")
+                            Step(number: 1, text: "Open Privacy Settings. macOS doesn't list Farscreen there by itself.")
+                            Step(number: 2, text: "Drag Farscreen from the Finder window into the list, or click + and choose it.")
+                            Step(number: 3, text: "Make sure its switch is on, then relaunch Farscreen.")
                         }
                         .padding(.top, 2)
                         // One row when there's room, two when the window is narrow.
@@ -180,7 +180,7 @@ private struct ScreenSharingCard: View {
             core.revealAppInFinder()
         }
         .buttonStyle(PrimaryButtonStyle())
-        Button("Show LanKVM in Finder") { core.revealAppInFinder() }
+        Button("Show Farscreen in Finder") { core.revealAppInFinder() }
             .buttonStyle(SecondaryButtonStyle())
     }
 
@@ -210,7 +210,7 @@ private struct ScreenSharingCard: View {
     private var explanation: String {
         switch core.canShareScreen {
         case .some(true): "Paired Macs can see this screen. You'll be asked for a code the first time a new Mac connects."
-        case .some(false): "macOS hasn't allowed LanKVM to record the screen yet, so other Macs can't view this one."
+        case .some(false): "macOS hasn't allowed Farscreen to record the screen yet, so other Macs can't view this one."
         case .none: "Checking Screen Recording permission…"
         }
     }
@@ -249,8 +249,8 @@ private struct RemoteControlCard: View {
                     if needsPermission {
                         VStack(alignment: .leading, spacing: 6) {
                             Step(number: 1, text: "Click Allow Control and choose Open System Settings.")
-                            Step(number: 2, text: "Turn on LanKVM under Accessibility.")
-                            Step(number: 3, text: "Already on but still not ready? Remove LanKVM with −, add it again, or relaunch LanKVM.")
+                            Step(number: 2, text: "Turn on Farscreen under Accessibility.")
+                            Step(number: 3, text: "Already on but still not ready? Remove Farscreen with −, add it again, or relaunch Farscreen.")
                         }
                         .padding(.top, 2)
                         HStack(spacing: 8) {
@@ -294,7 +294,7 @@ private struct RemoteControlCard: View {
             return "Paired Macs can only view this screen."
         }
         if needsPermission {
-            return "To use this Mac's mouse and keyboard from another Mac, macOS needs to allow LanKVM under Accessibility."
+            return "To use this Mac's mouse and keyboard from another Mac, macOS needs to allow Farscreen under Accessibility."
         }
         return "Paired Macs can switch to Control and use this Mac's mouse and keyboard, and its clipboard if they share theirs. To take it back at any time, press ⌃⌥⌘ and the period key here."
     }
@@ -369,7 +369,7 @@ private struct MicrophoneCard: View {
             if !core.host.microphoneReady {
                 Button("Restart Audio…") { core.restartAudio() }
                     .buttonStyle(SecondaryButtonStyle())
-                    .help("Restarts this Mac’s sound, which loads LanKVM Microphone")
+                    .help("Restarts this Mac’s sound, which loads Farscreen Microphone")
             }
             Button("Remove…") { core.removeMicrophoneDriver() }
                 .buttonStyle(SecondaryButtonStyle(destructive: true))
@@ -382,14 +382,14 @@ private struct MicrophoneCard: View {
         }
         if !core.microphoneDriver.installed {
             if !core.microphoneDriver.bundled {
-                return "This build of LanKVM doesn’t include LanKVM Microphone. Build the app with scripts/bundle.sh."
+                return "This build of Farscreen doesn’t include Farscreen Microphone. Build the app with scripts/bundle.sh."
             }
-            return "Install LanKVM Microphone so a paired Mac that views this one can lend it its microphone, for calls and recordings here. Installing asks for an administrator password and restarts this Mac’s sound for a moment."
+            return "Install Farscreen Microphone so a paired Mac that views this one can lend it its microphone, for calls and recordings here. Installing asks for an administrator password and restarts this Mac’s sound for a moment."
         }
         if !core.host.microphoneReady {
-            return "LanKVM Microphone is installed, but this Mac’s sound hasn’t loaded it yet. Restart Audio, or restart the Mac."
+            return "Farscreen Microphone is installed, but this Mac’s sound hasn’t loaded it yet. Restart Audio, or restart the Mac."
         }
-        let pick = "Apps here can choose LanKVM Microphone as their microphone. It plays the microphone of a paired Mac viewing this one, once that Mac turns on Share Microphone."
+        let pick = "Apps here can choose Farscreen Microphone as their microphone. It plays the microphone of a paired Mac viewing this one, once that Mac turns on Share Microphone."
         return core.host.allowControl ? pick : pick + " Turn on Let paired Macs control this Mac first: until then they can only view."
     }
 }
@@ -472,15 +472,15 @@ private struct InternetAccessCard: View {
         switch server.state {
         case .registered:
             StatusLine(icon: "checkmark.circle.fill", tint: .lkSuccess,
-                       text: "Reachable from anywhere through the LanKVM server — no router setup needed.",
+                       text: "Reachable from anywhere through the Farscreen server — no router setup needed.",
                        detail: server.observed.map { "The server sees this Mac at \($0)." })
                 .padding(.top, 2)
         case .connecting:
-            StatusLine(icon: "arrow.triangle.2.circlepath", text: "Connecting to the LanKVM server…")
+            StatusLine(icon: "arrow.triangle.2.circlepath", text: "Connecting to the Farscreen server…")
                 .padding(.top, 2)
         case .unreachable:
             StatusLine(icon: "exclamationmark.triangle.fill", tint: .lkWarning,
-                       text: "Couldn't reach the LanKVM server at \(server.address).", detail: unreachableDetail)
+                       text: "Couldn't reach the Farscreen server at \(server.address).", detail: unreachableDetail)
                 .padding(.top, 2)
         case .off, .other:
             EmptyView()
@@ -495,8 +495,8 @@ private struct InternetAccessCard: View {
         case .joining, .listed:
             if dht.symmetric && !internet.isOpen {
                 StatusLine(icon: "exclamationmark.triangle.fill", tint: .lkWarning,
-                           text: "Your router gives each connection its own port, so paired Macs can’t reach this Mac directly through it; the LanKVM server’s relay still can.",
-                           detail: server.address.isEmpty ? "Enter a LanKVM server below to use its relay." : nil)
+                           text: "Your router gives each connection its own port, so paired Macs can’t reach this Mac directly through it; the Farscreen server’s relay still can.",
+                           detail: server.address.isEmpty ? "Enter a Farscreen server below to use its relay." : nil)
                     .padding(.top, 2)
             } else if dht.state == .listed {
                 StatusLine(icon: "checkmark.circle.fill", tint: .lkSuccess,
@@ -509,7 +509,7 @@ private struct InternetAccessCard: View {
             }
         case .unreachable:
             StatusLine(icon: "exclamationmark.triangle.fill", tint: .lkWarning,
-                       text: "No BitTorrent DHT node answers.", detail: "UDP may be blocked on this network. LanKVM keeps trying.")
+                       text: "No BitTorrent DHT node answers.", detail: "UDP may be blocked on this network. Farscreen keeps trying.")
                 .padding(.top, 2)
         case .off, .idle, .other:
             EmptyView()
@@ -538,10 +538,10 @@ private struct InternetAccessCard: View {
     /// The server's way in is gone: say which are left. The router's status below says what's
     /// wrong with it.
     private var unreachableDetail: String {
-        if internet.isOpen { return "LanKVM keeps trying. Meanwhile, paired Macs connect through your router." }
-        if internet.viaDHT { return "LanKVM keeps trying. Meanwhile, paired Macs find this Mac through the BitTorrent DHT." }
-        if internet.isManual { return "LanKVM keeps trying. Until it gets through, paired Macs can only connect directly, through your router." }
-        return "LanKVM keeps trying. Until it gets through, paired Macs can't connect over the internet."
+        if internet.isOpen { return "Farscreen keeps trying. Meanwhile, paired Macs connect through your router." }
+        if internet.viaDHT { return "Farscreen keeps trying. Meanwhile, paired Macs find this Mac through the BitTorrent DHT." }
+        if internet.isManual { return "Farscreen keeps trying. Until it gets through, paired Macs can only connect directly, through your router." }
+        return "Farscreen keeps trying. Until it gets through, paired Macs can't connect over the internet."
     }
 
     /// While the router is asked, or what's wrong and how to fix it. Once the LanKVM server
@@ -621,7 +621,7 @@ private struct InternetAccessCard: View {
             return "Paired Macs can only connect on your network. Turn this on to let them connect over the internet too."
         }
         if internet.viaServer {
-            return "Macs that paired with this one on your network can connect over the internet; anyone else gets no answer. The LanKVM server only introduces your Macs to each other. When routers block a direct path, it passes their traffic along, encrypted so that it can't read it."
+            return "Macs that paired with this one on your network can connect over the internet; anyone else gets no answer. The Farscreen server only introduces your Macs to each other. When routers block a direct path, it passes their traffic along, encrypted so that it can't read it."
         }
         if internet.viaDHT {
             return "Macs that paired with this one on your network can connect over the internet; anyone else gets no answer. They find each other through the BitTorrent DHT — the network torrent apps use — with no server: this Mac leaves an encrypted note there that only your Macs can read."
@@ -644,25 +644,25 @@ private struct InternetAccessCard: View {
         let port = String(internet.port)
         switch internet.problem ?? .other {
         case .noResponse:
-            return "Your router didn't answer when LanKVM asked it to open a port. Turn on UPnP or NAT-PMP in its settings, or forward the port yourself."
+            return "Your router didn't answer when Farscreen asked it to open a port. Turn on UPnP or NAT-PMP in its settings, or forward the port yourself."
         case .unsupported:
             return "Your router can't open ports automatically. Forward the port yourself."
         case .disabled:
             return "Automatic port forwarding is turned off on your router. Turn on UPnP or NAT-PMP in its settings, or forward the port yourself."
         case .doubleNat:
             let router = internet.routerAddress.map { " (its address, \($0), is private)" } ?? ""
-            return "Your router is behind another router\(router), so LanKVM can't open the port to the internet by itself. Forward UDP port \(port) on the outer router too, or put one of them in bridge mode."
+            return "Your router is behind another router\(router), so Farscreen can't open the port to the internet by itself. Forward UDP port \(port) on the outer router too, or put one of them in bridge mode."
         case .cgnat:
             let router = internet.routerAddress.map { " (your router got \($0))" } ?? ""
             return "Your internet provider shares one public address among many customers\(router), so the internet can't reach this Mac. Ask your provider for a public IPv4 address."
         case .noRouter:
             return "This Mac isn't connected to a network with a router, so the internet can't reach it."
         case .serviceDown:
-            return "macOS's network service isn't responding, so LanKVM can't ask your router to open a port. It keeps trying."
+            return "macOS's network service isn't responding, so Farscreen can't ask your router to open a port. It keeps trying."
         case .firewall:
-            return "The macOS Firewall is blocking LanKVM. Allow incoming connections for LanKVM in System Settings → Network → Firewall → Options."
+            return "The macOS Firewall is blocking Farscreen. Allow incoming connections for Farscreen in System Settings → Network → Firewall → Options."
         case .other:
-            return "LanKVM couldn't get your router to open a port. Forward the port yourself."
+            return "Farscreen couldn't get your router to open a port. Forward the port yourself."
         }
     }
 
@@ -713,8 +713,8 @@ private struct InternetAccessCard: View {
     /// The core counts packets, not devices: one scanner, or one forgotten Mac retrying, adds several.
     private var ignoredText: String {
         let count = internet.ignored
-        return count == 1 ? "Ignored 1 packet from the internet that didn't come from a paired Mac since LanKVM started."
-            : "Ignored \(count.formatted()) packets from the internet that didn't come from a paired Mac since LanKVM started."
+        return count == 1 ? "Ignored 1 packet from the internet that didn't come from a paired Mac since Farscreen started."
+            : "Ignored \(count.formatted()) packets from the internet that didn't come from a paired Mac since Farscreen started."
     }
 }
 
@@ -770,7 +770,7 @@ private struct AddressFieldRow: View {
     }
 
     private var title: some View {
-        Text(field == .server ? "LanKVM server" : "Public address")
+        Text(field == .server ? "Farscreen server" : "Public address")
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(Color.lkText)
     }
@@ -802,9 +802,9 @@ private struct AddressFieldRow: View {
         case .publicAddress:
             "If your router's address changes, use a dynamic DNS name here. Paired Macs learn it the next time they connect."
         case .server where saved.isEmpty && core.host.internet.dht.enabled:
-            "Off: paired Macs find this Mac through the BitTorrent DHT or your router. Enter a LanKVM server to connect even when routers block a direct path."
+            "Off: paired Macs find this Mac through the BitTorrent DHT or your router. Enter a Farscreen server to connect even when routers block a direct path."
         case .server where saved.isEmpty:
-            "Off: paired Macs reach this Mac only through your router. Enter a LanKVM server to connect with no router setup."
+            "Off: paired Macs reach this Mac only through your router. Enter a Farscreen server to connect with no router setup."
         case .server:
             "Introduces paired Macs to this one. Change it only if you run your own; clear it to turn the server off."
         }

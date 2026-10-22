@@ -51,7 +51,7 @@ pub fn declare_user_activity() {
     }
     use std::sync::Mutex;
     static ID: Mutex<IOPMAssertionID> = Mutex::new(0);
-    let name = objc2_core_foundation::CFString::from_static_str("LanKVM remote control");
+    let name = objc2_core_foundation::CFString::from_static_str("Farscreen remote control");
     let mut id = ID.lock().unwrap();
     unsafe { IOPMAssertionDeclareUserActivity(&name, K_IOPM_USER_ACTIVE_REMOTE, &mut *id) };
 }

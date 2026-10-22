@@ -71,11 +71,11 @@ func connectHelp(_ device: PairedDevice, dht: Bool) -> String {
     guard device.canConnect(device.connection) else {
         switch device.connection {
         case .local:
-            return "This Mac doesn't know where \(name) is on the local network yet. Type its address in Connect once (This Mac in LanKVM on that Mac shows it)."
+            return "This Mac doesn't know where \(name) is on the local network yet. Type its address in Connect once (This Mac in Farscreen on that Mac shows it)."
         case .internet:
-            return "\(name) hasn't told this Mac how to reach it over the internet. Turn on internet access on it (This Mac in LanKVM), then connect to it once on the local network."
+            return "\(name) hasn't told this Mac how to reach it over the internet. Turn on internet access on it (This Mac in Farscreen), then connect to it once on the local network."
         case .auto:
-            return "This Mac doesn't know where \(name) is yet. Type its address in Connect once, on the same network (This Mac in LanKVM on that Mac shows it)."
+            return "This Mac doesn't know where \(name) is yet. Type its address in Connect once, on the same network (This Mac in Farscreen on that Mac shows it)."
         }
     }
     switch device.connection {
@@ -85,8 +85,8 @@ func connectHelp(_ device: PairedDevice, dht: Bool) -> String {
         return "Connect to \(name) on the local network, at \(device.localAddress.map(shownAddress) ?? "its address there")"
     case .internet:
         guard let address = device.internetAddress else {
-            return dht ? "Connect to \(name) over the internet, through the LanKVM server or the BitTorrent DHT"
-                : "Connect to \(name) over the internet, through the LanKVM server"
+            return dht ? "Connect to \(name) over the internet, through the Farscreen server or the BitTorrent DHT"
+                : "Connect to \(name) over the internet, through the Farscreen server"
         }
         return "Connect to \(name) over the internet (\(shownAddress(address)))"
     }
@@ -102,23 +102,23 @@ struct MacAddresses: View {
         Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 2) {
             line("Local", device.localAddress.map(shownAddress), unknown: "Not known yet", used: device.connection != .internet)
                 .help(device.localAddress == nil
-                    ? "Type its address in Connect once, on the same network: This Mac in LanKVM on that Mac shows it."
+                    ? "Type its address in Connect once, on the same network: This Mac in Farscreen on that Mac shows it."
                     : "Where this Mac last reached it on the local network")
             line("Internet", device.internetAddress.map(shownAddress), unknown: device.reachable ? foundThrough : "Not set up",
                  used: device.connection != .local)
                 .help(device.reachable
                     ? "Where it was reached over the internet, or said to reach it. \(findsIt)"
-                    : "Turn on internet access on that Mac (This Mac in LanKVM), then connect to it once on the local network.")
+                    : "Turn on internet access on that Mac (This Mac in Farscreen), then connect to it once on the local network.")
         }
     }
 
     /// This Mac looks for paired Macs on the BitTorrent DHT too, when it's on.
     private var dht: Bool { core.host.internet.dht.enabled }
 
-    private var foundThrough: String { dht ? "Through the server or the DHT" : "Through the LanKVM server" }
+    private var foundThrough: String { dht ? "Through the server or the DHT" : "Through the Farscreen server" }
 
     private var findsIt: String {
-        dht ? "The LanKVM server or the BitTorrent DHT finds it wherever it is." : "The LanKVM server finds it wherever it is."
+        dht ? "The Farscreen server or the BitTorrent DHT finds it wherever it is." : "The Farscreen server finds it wherever it is."
     }
 
     private func line(_ label: String, _ address: String?, unknown: String, used: Bool) -> some View {
@@ -152,7 +152,7 @@ struct ConnectionPicker: View {
         .labelsHidden()
         .controlSize(.small)
         .fixedSize()
-        .help("How to connect to “\(device.displayName)”. Auto: on the local network and over the internet at once, keeping the local network when both answer. Local: only on the local network. Internet: only over the internet, directly or through the LanKVM server.")
+        .help("How to connect to “\(device.displayName)”. Auto: on the local network and over the internet at once, keeping the local network when both answer. Local: only on the local network. Internet: only over the internet, directly or through the Farscreen server.")
     }
 }
 
@@ -199,7 +199,7 @@ struct RenameMacForm: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($focused)
                 .onSubmit(save)
-            Text("What LanKVM on this Mac calls it. Leave it empty for “\(device.name)”, the name it gave itself.")
+            Text("What Farscreen on this Mac calls it. Leave it empty for “\(device.name)”, the name it gave itself.")
                 .font(.system(size: 11))
                 .foregroundStyle(Color.lkSecondary)
                 .fixedSize(horizontal: false, vertical: true)

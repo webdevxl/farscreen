@@ -370,12 +370,12 @@ impl HostCtx {
                 tracing::warn!("save host settings: {e:#}");
             }
         }
-        tracing::info!(server = address, "LanKVM server");
+        tracing::info!(server = address, "Farscreen server");
         // Sessions through the old server's relay end: this Mac stops listening to it in a
         // moment (see `Rendezvous::set_host_addr`).
         if self.internet.set_rendezvous_server(&address) {
             for v in self.status.lock().unwrap().viewers.iter().filter(|v| self.internet.is_relayed(v.conn.remote_address())) {
-                v.conn.close(8u32.into(), b"LanKVM server changed");
+                v.conn.close(8u32.into(), b"Farscreen server changed");
             }
         }
         self.changed();
@@ -553,7 +553,7 @@ async fn serve(incoming: Incoming, ctx: Arc<HostCtx>, handshake: Handshake, inte
         return reject(&conn, &mut send, &version_mismatch(version, &system::device_name())).await;
     }
     if ctx.video && !tokio::task::spawn_blocking(can_capture).await? {
-        return reject(&conn, &mut send, "That Mac hasn't allowed Screen Recording for LanKVM yet (System Settings → Privacy & Security), or LanKVM needs a restart there after allowing it.").await;
+        return reject(&conn, &mut send, "That Mac hasn't allowed Screen Recording for Farscreen yet (System Settings → Privacy & Security), or Farscreen needs a restart there after allowing it.").await;
     }
     let known = ctx.trust.viewers.lock().unwrap().contains(&client_fp);
     if !known || !trusts_host {
@@ -896,7 +896,7 @@ impl SessionMic {
         if !self.ctx.speaker.ready() {
             return (
                 MicrophoneReason::NOT_INSTALLED,
-                format!("{host} needs LanKVM Microphone first. On that Mac, open LanKVM, then This Mac → Microphone → Install."),
+                format!("{host} needs Farscreen Microphone first. On that Mac, open Farscreen, then This Mac → Microphone → Install."),
             );
         }
         (MicrophoneReason::NONE, String::new())
@@ -1238,14 +1238,14 @@ impl SessionControl {
         if !self.ctx.settings.lock().unwrap().allow_control {
             return Err((
                 ControlReason::TURNED_OFF,
-                format!("Remote control is turned off on {host}. It can be turned on under This Mac in LanKVM there."),
+                format!("Remote control is turned off on {host}. It can be turned on under This Mac in Farscreen there."),
             ));
         }
         if !self.ctx.trust.viewers.lock().unwrap().contains(&self.client_fp) {
             return Err((ControlReason::TURNED_OFF, format!("{host} no longer trusts this Mac. Connect again to pair.")));
         }
         if self.client_fp == self.ctx.trust.fingerprint {
-            return Err((ControlReason::SELF_CONNECTION, "This LanKVM is connected to itself. Connect from another Mac to control this one.".into()));
+            return Err((ControlReason::SELF_CONNECTION, "This Farscreen is connected to itself. Connect from another Mac to control this one.".into()));
         }
         if self.same_mac && !self.ctx.allow_same_mac_control {
             return Err((
@@ -1327,7 +1327,7 @@ impl SessionControl {
     fn check_permission(&mut self) {
         if self.active() && !self.ctx.backend.permitted() {
             tracing::warn!("Accessibility permission was withdrawn; ending control");
-            let message = format!("{} turned off LanKVM's Accessibility permission, so it can't be controlled now.", system::device_name());
+            let message = format!("{} turned off Farscreen's Accessibility permission, so it can't be controlled now.", system::device_name());
             self.deactivate(ControlReason::PERMISSION_LOST, message, 0);
         }
     }
@@ -1383,7 +1383,7 @@ impl SessionControl {
             guard_pid: self.ctx.guard_pid,
             on_failure: Box::new(move |failure| {
                 let message = match failure {
-                    InputFailure::BadInput(why) => format!("{viewer} sent input LanKVM couldn't accept ({why}), so control was stopped."),
+                    InputFailure::BadInput(why) => format!("{viewer} sent input Farscreen couldn't accept ({why}), so control was stopped."),
                     InputFailure::Unavailable(why) => injection_failed(&why),
                 };
                 let _ = events.send(SessionEvt::Revoke(ControlReason::BAD_INPUT, message));
@@ -1514,11 +1514,11 @@ impl CursorWish {
 }
 
 fn injection_failed(why: &str) -> String {
-    format!("LanKVM on {} couldn't start posting input ({why}), so control was stopped.", system::device_name())
+    format!("Farscreen on {} couldn't start posting input ({why}), so control was stopped.", system::device_name())
 }
 
 fn permission_reason(host: &str) -> String {
-    format!("{host} hasn't allowed LanKVM to control it yet. On that Mac, turn on LanKVM in System Settings → Privacy & Security → Accessibility.")
+    format!("{host} hasn't allowed Farscreen to control it yet. On that Mac, turn on Farscreen in System Settings → Privacy & Security → Accessibility.")
 }
 
 impl Drop for SessionControl {
@@ -1596,8 +1596,8 @@ async fn reject(conn: &Connection, send: &mut SendStream, reason: &str) -> Resul
 fn version_mismatch(viewer_version: u32, host_name: &str) -> String {
     let outdated = if viewer_version < PROTOCOL_VERSION { "this Mac" } else { host_name };
     format!(
-        "LanKVM on {host_name} doesn't match this Mac (protocol {PROTOCOL_VERSION} there, {viewer_version} here). \
-         Update LanKVM on {outdated}, then quit and reopen it."
+        "Farscreen on {host_name} doesn't match this Mac (protocol {PROTOCOL_VERSION} there, {viewer_version} here). \
+         Update Farscreen on {outdated}, then quit and reopen it."
     )
 }
 
@@ -3561,7 +3561,7 @@ impl Screen {
             return (DisplayReason::UNSUPPORTED, format!("{host}'s version of macOS can't make virtual displays."));
         }
         if !ctx.settings.lock().unwrap().allow_control {
-            let message = format!("{host} lets paired Macs only view it. Virtual displays, like control, can be turned on under This Mac in LanKVM there.");
+            let message = format!("{host} lets paired Macs only view it. Virtual displays, like control, can be turned on under This Mac in Farscreen there.");
             return (DisplayReason::NOT_ALLOWED, message);
         }
         if !ctx.console_active.load(Ordering::Acquire) {
@@ -3571,7 +3571,7 @@ impl Screen {
             return (DisplayReason::NOT_ALLOWED, format!("{host} no longer trusts this Mac. Connect again to pair."));
         }
         if self.client_fp == ctx.trust.fingerprint {
-            return (DisplayReason::NOT_ALLOWED, "This LanKVM is connected to itself.".into());
+            return (DisplayReason::NOT_ALLOWED, "This Farscreen is connected to itself.".into());
         }
         if self.same_mac && !ctx.allow_same_mac_control {
             let message = format!("That's this Mac ({host}): a virtual display can only go next to its screen, not replace it.");
@@ -3859,8 +3859,8 @@ mod tests {
 
     #[test]
     fn version_mismatch_names_the_outdated_mac() {
-        assert!(version_mismatch(PROTOCOL_VERSION - 1, "Studio").contains("Update LanKVM on this Mac"));
-        assert!(version_mismatch(PROTOCOL_VERSION + 1, "Studio").contains("Update LanKVM on Studio"));
+        assert!(version_mismatch(PROTOCOL_VERSION - 1, "Studio").contains("Update Farscreen on this Mac"));
+        assert!(version_mismatch(PROTOCOL_VERSION + 1, "Studio").contains("Update Farscreen on Studio"));
     }
 
     #[test]

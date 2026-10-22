@@ -1,14 +1,145 @@
-# LanKVM
+<p align="center">
+  <img src=".github/assets/banner.svg" width="100%" alt="Farscreen: low-latency remote desktop for Mac. View or control another Mac at up to 6K and 120 fps, on your network or across the internet.">
+</p>
 
-Low-latency remote desktop for Macs on the same local network, built as a software network KVM.
-Every Mac runs the same app. Others on the LAN can view it, and it can connect to them by IP.
-Paired Macs can also connect over the internet, if the Mac they connect to turns that on, with
-no router setup: a small LanKVM server introduces them to each other, or, with no server at all,
-the BitTorrent DHT (the network torrent apps find each other through).
+<p align="center">
+  <b>Open-source remote desktop and screen sharing for macOS, built for low latency.</b><br>
+  View or control another Mac at up to 6K and 120 fps, with hardware HEVC over QUIC,<br>
+  on your local network or across the internet, with no port forwarding.
+</p>
 
-**Status:** prototype. You enter an IP, enter a PIN once, and see the other Mac's screen. Each
+<p align="center">
+  <a href="#install"><img alt="macOS 14 or later" src="https://img.shields.io/badge/macOS-14%2B-D97757?style=flat-square&logo=apple&logoColor=white&labelColor=231B17"></a>
+  <a href="#install"><img alt="Apple Silicon" src="https://img.shields.io/badge/Apple_Silicon-M1_or_later-D97757?style=flat-square&labelColor=231B17"></a>
+  <a href="#layout"><img alt="Rust core" src="https://img.shields.io/badge/core-Rust-D97757?style=flat-square&logo=rust&logoColor=white&labelColor=231B17"></a>
+  <a href="#layout"><img alt="SwiftUI app" src="https://img.shields.io/badge/app-SwiftUI-D97757?style=flat-square&logo=swift&logoColor=white&labelColor=231B17"></a>
+  <a href="#license"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-D97757?style=flat-square&labelColor=231B17"></a>
+  <img alt="Status: prototype" src="https://img.shields.io/badge/status-prototype-8A7A70?style=flat-square&labelColor=231B17">
+</p>
+
+<p align="center">
+  <a href="#install"><b>Install</b></a> ·
+  <a href="#features">Features</a> ·
+  <a href="#using-it">Using it</a> ·
+  <a href="#how-it-stays-fast">How it stays fast</a> ·
+  <a href="#connecting-over-the-internet">Over the internet</a> ·
+  <a href="#security-model">Security</a> ·
+  <a href="#troubleshooting">Troubleshooting</a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/connect-dark.png">
+    <img src=".github/assets/connect-light.png" width="820" alt="Farscreen's Connect window on macOS: paired Macs with their local and internet addresses, and a field to connect to a Mac by IP">
+  </picture>
+</p>
+
+## What is Farscreen?
+
+Farscreen is a low-latency remote desktop app for macOS, built as a software network KVM. Every
+Mac runs the same app. Others on the network can view it, and it can connect to them by IP. Each
 viewer window has two modes: **View** only looks; **Control** uses the other Mac's keyboard and
 mouse as if they were plugged into it, and shares the clipboard with it.
+
+Paired Macs can also connect over the internet, if the Mac they connect to turns that on, with no
+router setup: a small Farscreen server introduces them to each other, or, with no server at all,
+the BitTorrent DHT (the network torrent apps find each other through).
+
+The core is Rust (capture, encoding, transport) and the app is SwiftUI, both built on Apple's own
+media stack: ScreenCaptureKit, VideoToolbox and Metal.
+
+> [!NOTE]
+> **Status: prototype.** You enter an IP, enter a PIN once, and see the other Mac's screen.
+> Farscreen was called LanKVM until October 2026. The code, its `LANKVM_*` settings and its data
+> folders still use that name.
+
+## Features
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**⚡ Milliseconds, not frames**<br>
+Only the tiles of the screen that changed are encoded, each by its own hardware HEVC encoder. A
+typed letter is out of the encoder 3.6–5.4 ms after the frame is taken (M3 Max).
+
+</td>
+<td width="50%" valign="top">
+
+**🖥️ 6K at 120 fps**<br>
+Frames as often as your display shows them, up to 120 fps even at 6144 × 2560. Text that stays
+still sharpens until it looks like the screen itself.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**🕹️ Control without lag**<br>
+Keyboard, mouse, trackpad gestures and system shortcuts go to the other Mac. The pointer is drawn
+on your side, so it never waits for the video.
+
+</td>
+<td valign="top">
+
+**📋 One clipboard**<br>
+Copy on one Mac, paste on the other: text, rich text, links, images and PDFs, up to 64 MB on
+the local network.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**🎙️ Your microphone, over there**<br>
+Lend your microphone to Zoom, Teams or FaceTime on the other Mac, through a small audio driver.
+
+</td>
+<td valign="top">
+
+**🪟 Virtual displays**<br>
+The other Mac gets a display exactly your screen's size, up to 8K, shown pixel for pixel.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**🌍 Internet, no router setup**<br>
+Paired Macs punch through NAT with a small rendezvous server or the BitTorrent DHT, with an
+end-to-end encrypted relay when routers won't let a direct path through.
+
+</td>
+<td valign="top">
+
+**🔒 Silent to strangers**<br>
+TLS 1.3 end to end, PIN pairing with SPAKE2, and a port-knocking gate: to anyone not paired, the
+port looks closed.
+
+</td>
+</tr>
+</table>
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%" align="center" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/this-mac-dark.png">
+  <img src=".github/assets/this-mac-light.png" alt="This Mac page: screen sharing ready, remote control by a paired Mac, microphone driver and internet access">
+</picture>
+<br><sub><b>This Mac</b>: what paired Macs may do here, at a glance</sub>
+</td>
+<td width="50%" align="center" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/latency-overlay-dark.png">
+  <img src=".github/assets/latency-overlay-light.png" alt="Latency overlay: capture, encode, network, decode and display times of each frame, plus input latency">
+</picture>
+<br><sub><b>Latency overlay</b>: every frame's capture → screen time, stage by stage</sub>
+</td>
+</tr>
+</table>
 
 ## How it stays fast
 
@@ -85,21 +216,21 @@ The installer:
 3. Installs **Rust** (rustup, Rust 1.88 or later) if it's missing, using Homebrew when available,
    and updates it if it's older.
 4. Offers to create a local code-signing certificate (see Signing below).
-5. Builds and signs `LanKVM.app`, installs it into `/Applications` (or `~/Applications`), and
+5. Builds and signs `Farscreen.app`, installs it into `/Applications` (or `~/Applications`), and
    opens it.
 
 `./install.sh --check` only reports what's missing. The minimum versions are at the top of
 `install.sh`.
 
-For quick rebuilds while developing, `./scripts/bundle.sh` builds `target/release/LanKVM.app`
+For quick rebuilds while developing, `./scripts/bundle.sh` builds `target/release/Farscreen.app`
 without installing it:
 
 ```bash
-./scripts/bundle.sh && open target/release/LanKVM.app
+./scripts/bundle.sh && open target/release/Farscreen.app
 ```
 
 `bundle.sh` builds the Rust core as a static library, links it into the SwiftUI app with
-SwiftPM, puts the LanKVM Microphone driver inside (see Using your microphone on the other Mac),
+SwiftPM, puts the Farscreen Microphone driver inside (see Using your microphone on the other Mac),
 writes `Info.plist` and signs the bundle. Always launch the `.app`: macOS grants Screen Recording
 and the microphone to the app bundle.
 
@@ -115,9 +246,9 @@ certificate (it asks for your login password once):
 
 ## Using it
 
-1. Run LanKVM on every Mac. On a Mac you want to view, open **This Mac**. If screen sharing
-   says *Needs permission*, click **Open Privacy Settings**, turn on LanKVM, then **Relaunch
-   LanKVM**.
+1. Run Farscreen on every Mac. On a Mac you want to view, open **This Mac**. If screen sharing
+   says *Needs permission*, click **Open Privacy Settings**, turn on Farscreen, then **Relaunch
+   Farscreen**.
 2. **This Mac** shows the address to use, e.g. `192.168.1.20`. On the other Mac, open
    **Connect**, type it and press Return. Each remote Mac opens in its own window.
 3. First time only: the viewed Mac shows a 6-digit code. Type it on the viewing Mac. Both Macs
@@ -134,7 +265,7 @@ certificate (it asks for your login password once):
 - **Local**: where this Mac last reached it on the local network (or else where it said it is
   there). *Not known yet* until this Mac has reached it there: type its address once.
 - **Internet**: where it was last reached, or said to reach it, over the internet. *Through the
-  LanKVM server* when only the server knows; *Not set up* while its internet access is off (see
+  Farscreen server* when only the server knows; *Not set up* while its internet access is off (see
   Connecting over the internet).
 
 The switch next to each picks how **Connect** reaches that Mac, and is remembered per Mac:
@@ -142,7 +273,7 @@ The switch next to each picks how **Connect** reaches that Mac, and is remembere
 - **Auto** (the default) tries every way at once, the local network and the internet, and keeps
   the local network when both answer.
 - **Local** connects only on the local network, at its local address.
-- **Internet** connects only over the internet: at its internet address, and through the LanKVM
+- **Internet** connects only over the internet: at its internet address, and through the Farscreen
   server. It stays there even when the Mac turns out to be on your network, so it is also the
   way to try the internet path from home.
 
@@ -150,13 +281,20 @@ The switch next to each picks how **Connect** reaches that Mac, and is remembere
 missing. An address typed at the top always goes where it says, whatever the switch.
 
 Give a Mac a name of your own with the pencil next to its name (or right-click the row, or
-**Rename** in **Paired Devices**): e.g. *Office* for a Mac that calls itself *Mac mini*. LanKVM
+**Rename** in **Paired Devices**): e.g. *Office* for a Mac that calls itself *Mac mini*. Farscreen
 on this Mac then calls it that everywhere, the viewer window and its messages included. Leave
 the name empty to go back to its own. Names, addresses and the choice stay on this Mac, in
 `address-book.json` in its data directory, and go when you forget the Mac. A Mac in **Your Macs**
 isn't repeated under **Recent**.
 
 ### Controlling the other Mac
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/session-control-dark.png">
+    <img src=".github/assets/session-control-light.png" width="640" alt="The session control at the top of the remote screen: Controlling with Release, or Viewing with Control">
+  </picture>
+</p>
 
 - Choose **Control** in the viewer's toolbar, or press **⌃⌥⌘** (Control-Option-Command together,
   then let go). **View** in the toolbar, or **View Only** in the menus, goes back to watching.
@@ -191,7 +329,7 @@ isn't repeated under **Recent**.
 - **Trackpad gestures** go to the other Mac too (**Control → Send Trackpad Gestures to Remote
   Mac**, on by default). Pinch, rotate, smart zoom and swipes between pages act on what's under
   the pointer there. Swiping between Spaces, Mission Control, App Exposé and the pinches for
-  Show Desktop and Launchpad (Apps) also need Accessibility for LanKVM on **your** Mac, the same
+  Show Desktop and Launchpad (Apps) also need Accessibility for Farscreen on **your** Mac, the same
   switch as for being controlled. Without it they act on your Mac, and the viewer offers **Open
   Settings**. They go to the other Mac when they start over its picture, or anywhere on the
   screen in full screen; elsewhere, or once you release (⌃⌥⌘), they're your Mac's again. Mission
@@ -200,8 +338,8 @@ isn't repeated under **Recent**.
 - Not possible over the network: Force Touch and Look Up, the swipe in from the right edge for
   Notification Center, the Globe key's system actions, media keys, and the login window.
 
-**On the Mac being controlled**, macOS must allow LanKVM to post input: **This Mac → Remote
-control → Allow Control…**, then switch LanKVM on under Privacy & Security → Accessibility. The
+**On the Mac being controlled**, macOS must allow Farscreen to post input: **This Mac → Remote
+control → Allow Control…**, then switch Farscreen on under Privacy & Security → Accessibility. The
 same card has **Let paired Macs control this Mac** (on by default). While anyone is connected, a
 menu-bar icon lists them, with **Stop Control** and **Disconnect**; **⌃⌥⌘.** (period) also takes
 control back. One Mac controls at a time: another device has to choose to take over. Two Macs
@@ -228,47 +366,47 @@ copying one empties the other Mac's clipboard, so it never pastes something olde
   goes as PNG, a fraction of the size.
 - A password copied from a password manager keeps its "concealed" mark (nspasteboard.org), so
   clipboard history apps on the other Mac leave it out too.
-- LanKVM checks only whether the clipboard changed (a counter macOS keeps), a few times a second,
-  and reads it only while it shares it. If macOS asks whether LanKVM may paste from other apps,
+- Farscreen checks only whether the clipboard changed (a counter macOS keeps), a few times a second,
+  and reads it only while it shares it. If macOS asks whether Farscreen may paste from other apps,
   allow it.
 
 ### Using your microphone on the other Mac
 
 The Mac you sit at can lend its microphone to the Mac you view or control: apps there (a call in
-Zoom, Teams or FaceTime, a recording, dictation) choose **LanKVM Microphone** as their
+Zoom, Teams or FaceTime, a recording, dictation) choose **Farscreen Microphone** as their
 microphone and hear you.
 
 1. **Once, on the other Mac:** open **This Mac → Microphone** and click **Install…**. That installs
-   LanKVM Microphone, a small audio driver, into `/Library/Audio/Plug-Ins/HAL`: macOS asks for an
+   Farscreen Microphone, a small audio driver, into `/Library/Audio/Plug-Ins/HAL`: macOS asks for an
    administrator password, and the Mac's sound restarts for a moment. (`./scripts/install-audio-driver.sh`
    does the same from Terminal.) **Let paired Macs control this Mac** must be on there: a
    microphone is input too.
 2. **On your Mac:** click the microphone button in the viewer's toolbar, or choose **Share
    Microphone** (session control's **⋯** menu, or the **Control** menu). The first time, macOS
-   asks whether LanKVM may use the microphone.
-3. **On the other Mac:** pick **LanKVM Microphone** as the input in the app (or in System Settings
+   asks whether Farscreen may use the microphone.
+3. **On the other Mac:** pick **Farscreen Microphone** as the input in the app (or in System Settings
    → Sound → Input, for every app).
 
-- Your Mac's current microphone goes (its default input in Sound settings), and LanKVM follows
+- Your Mac's current microphone goes (its default input in Sound settings), and Farscreen follows
   when you change it, a headset plugged in say. Only the Mac whose window shares it hears it: each
   window has its own switch, off every time it connects.
-- Several Macs can share their microphones with one Mac at once: LanKVM Microphone plays them
+- Several Macs can share their microphones with one Mac at once: Farscreen Microphone plays them
   mixed. This Mac lists whose microphone is on, and so does the menu-bar icon. Turning off **Let
   paired Macs control this Mac** stops them.
 - Audio goes as 48 kHz, 16-bit mono in 10 ms packets (about 0.8 Mbit/s), on QUIC datagrams like
   the video: a lost packet is a 10 ms gap rather than a growing delay. The other Mac keeps 20 ms
   of it in hand on the local network (40 ms over the internet), more for a while after the
   network stalled, and follows the two Macs' clocks drifting apart without a sound.
-- Without the microphone permission macOS sends LanKVM silence: allow it in System Settings →
-  Privacy & Security → Microphone. LanKVM never sends LanKVM Microphone itself (a Mac whose own
+- Without the microphone permission macOS sends Farscreen silence: allow it in System Settings →
+  Privacy & Security → Microphone. Farscreen never sends Farscreen Microphone itself (a Mac whose own
   input is set to it), which would play other Macs' audio back to them.
 - **Remove…** under This Mac → Microphone uninstalls the driver (`./scripts/install-audio-driver.sh
-  --remove` from Terminal). **Update…** shows there when this LanKVM has a newer driver.
+  --remove` from Terminal). **Update…** shows there when this Farscreen has a newer driver.
 
 ### Working on a big screen: virtual displays
 
 The Mac with the big monitor can be the other Mac's display. The other Mac makes a display that
-exists only in software, exactly the size of your screen, and LanKVM shows it pixel for pixel: a
+exists only in software, exactly the size of your screen, and Farscreen shows it pixel for pixel: a
 MacBook Pro whose own screen is 3456 × 2234 gets a 6144 × 2560 Retina display, say, which looks
 like 3072 × 1280.
 
@@ -300,8 +438,8 @@ Screen** goes back.
 - 6144 × 2560 streams at up to 120 fps: a change to part of it encodes in a few milliseconds, a
   change of the whole screen in about 17 ms on an M3 Max. Big changes take up to about
   113 Mbit/s: use Ethernet. A Mac makes at most two virtual displays at once.
-- Both Macs need this version of LanKVM. Virtual displays use a private macOS interface (as
-  BetterDisplay and DeskPad do); LanKVM checks it's there, exactly as expected, before using it.
+- Both Macs need this version of Farscreen. Virtual displays use a private macOS interface (as
+  BetterDisplay and DeskPad do); Farscreen checks it's there, exactly as expected, before using it.
 
 Set `LANKVM_PORT` to change the UDP port (default 47800). On the viewed Mac, `LANKVM_TILES=COLSxROWS`
 forces the tile grid (`1x1` encodes the whole picture as one stream, as older versions did), and
@@ -317,9 +455,9 @@ Off by default, and only for Macs that have paired. Nothing to set up on either 
    the code. Pairing never happens over the internet. On every connection the host also hands
    the viewer its key for the internet, and says how to reach it there (see Security model).
 2. On the Mac to reach, open **This Mac** and turn on **Let paired Macs connect over the
-   internet**. It registers with the LanKVM server (`178.156.129.211:3478`, UDP) and stays in
+   internet**. It registers with the Farscreen server (`178.156.129.211:3478`, UDP) and stays in
    touch with it, which also keeps its router open for it. The card says *Reachable from
-   anywhere through the LanKVM server* once it is.
+   anywhere through the Farscreen server* once it is.
 3. Connect from the other Mac once more on the local network while internet access is on there,
    so it learns the way. From then on, click **Connect** next to the Mac under **Your Macs**
    (with **Auto** or **Internet**), from anywhere.
@@ -335,10 +473,10 @@ Two Macs on one network connect there, even when one is told the other's public 
 goes through the server (unless you chose **Internet** for that Mac): the host says where it is on its network every time a viewer connects,
 and the viewer tries that too, at the same time, and prefers it when it is on the viewer's own
 network. Routers rarely send traffic for their own public address back inside, so without that
-the session would go out to the LanKVM server and back. A session that went through the relay anyway (the first time, before
+the session would go out to the Farscreen server and back. A session that went through the relay anyway (the first time, before
 the viewer knew that address) moves onto the local network a moment later, without starting over.
 
-The **LanKVM server** field under internet access on This Mac picks another server (`host:port`),
+The **Farscreen server** field under internet access on This Mac picks another server (`host:port`),
 or none when left empty: then paired Macs reach the Mac through the BitTorrent DHT (below), or
 directly through its router. It has to be on the internet (paired Macs don't use one on a local
 network), and changing it ends the sessions relayed through the old one. The server is the
@@ -346,11 +484,11 @@ network), and changing it ends the sessions relayed through the old one. The ser
 
 **With no server at all: the BitTorrent DHT.** Torrent apps find each other with no tracker
 through the "Mainline" DHT: millions of computers running torrent apps, each keeping a little of
-a shared table. LanKVM uses it the same way, so two paired Macs meet with no LanKVM server
+a shared table. Farscreen uses it the same way, so two paired Macs meet with no Farscreen server
 (**Find this Mac through the BitTorrent DHT** under internet access on This Mac, on by default;
 the same switch decides whether this Mac looks there as a viewer). A viewer looks there for a
 Mac that had internet access on when they last connected on the local network, as it does for
-the LanKVM server:
+the Farscreen server:
 
 1. The Mac to reach leaves a note on the DHT for each paired Mac: where it is (its public address
    as DHT nodes see it, its IPv6 address, its address on its own network) and which DHT nodes it
@@ -366,17 +504,17 @@ the LanKVM server:
    note. The viewer connects the moment the host's packets arrive (they also say where the host
    is), or when the answer appears: usually 3–6 seconds in all (measured from a home connection
    on the public DHT), up to about 9 just after the host restarted, against well under a second
-   through the LanKVM server, which is why both are tried at once when a server is set.
+   through the Farscreen server, which is why both are tried at once when a server is set.
 
 From then on the session is the same as through the server's introduction: straight from Mac to
 Mac, the same latency, knock and TLS included. What the DHT can't do is relay: where neither
 router lets a direct path through (one that gives every destination its own outside port, or
-carrier-grade NAT), only the LanKVM server's relay gets through over IPv4. Over IPv6 there is no
+carrier-grade NAT), only the Farscreen server's relay gets through over IPv4. Over IPv6 there is no
 address translation to get around, only the firewalls in front of each Mac, which the same packets
 open, so two Macs with IPv6 (most home connections, many phone networks) connect directly even
 there. This Mac's card shows where DHT nodes see it, and warns when its router changes ports.
 
-LanKVM joins the DHT through a few well-known nodes (`dht.libtorrent.org`,
+Farscreen joins the DHT through a few well-known nodes (`dht.libtorrent.org`,
 `dht.transmissionbt.com`, BitTorrent's own) the first time, then through the nodes it met last
 time (`dht-nodes.txt` in its data directory). It never answers DHT queries (it joins read-only, as
 BEP 43 allows), so its port still looks closed to strangers; while internet access is on, the host
@@ -405,7 +543,7 @@ and from anywhere after that, through the DHT and no other way:
 target/release/examples/probe lankvm:<fingerprint> --only-dht
 ```
 
-**A direct path through the router (optional).** LanKVM also asks the router to forward its UDP
+**A direct path through the router (optional).** Farscreen also asks the router to forward its UDP
 port (macOS speaks UPnP, NAT-PMP and PCP for it). When the router does, the card shows the
 address, e.g. `203.0.113.7:47800`, and paired Macs try it along with the server. When it doesn't,
 the card says what to forward by hand: UDP port 47800 to this Mac's address on the network, e.g.
@@ -419,29 +557,29 @@ anywhere else (see Security model). You can also type the address in **Connect**
 Two Macs behind one router can both be reachable: the router gives the second one another
 outside port, and its card shows the address with that port, e.g. `203.0.113.7:47801`. (Or
 start it with its own `LANKVM_PORT`.) Turning the setting off removes the forward, takes the Mac
-off the LanKVM server and ends the sessions that came over the internet; sessions on the local
+off the Farscreen server and ends the sessions that came over the internet; sessions on the local
 network carry on.
 
 Over the internet the picture follows the connection: changes go out as tiles only, at up to
 60 fps, and the bitrate starts at 12 Mbit/s and rises as far as the connection allows, backing off
-when packets get lost or start to queue (through the LanKVM server's relay, to at most 32 Mbit/s,
+when packets get lost or start to queue (through the Farscreen server's relay, to at most 32 Mbit/s,
 under what the server passes). On a slow connection the picture gets softer rather than falling
 behind: the bitrate comes down to what the connection delivers. What limits it is usually the upload of the Mac you're looking at: for the
 best picture, give that Mac a fast upload.
 
 ## Testing a connection on one Mac
 
-Connecting LanKVM to itself isn't a real test: one process plays both roles with one identity.
+Connecting Farscreen to itself isn't a real test: one process plays both roles with one identity.
 Run two separate devices instead. `LANKVM_DATA_DIR` gives an instance its own certificate,
 trust lists and log, and `LANKVM_PORT` its own port.
 
-**Two apps.** With the normal LanKVM running, start a second one, "LanKVM 2", on port 47801:
+**Two apps.** With the normal Farscreen running, start a second one, "Farscreen 2", on port 47801:
 
 ```bash
 ./scripts/second-instance.sh
 ```
 
-In LanKVM 2, connect to `127.0.0.1:47800` and type the PIN that LanKVM shows. LanKVM 2 is a
+In Farscreen 2, connect to `127.0.0.1:47800` and type the PIN that Farscreen shows. Farscreen 2 is a
 copy with its own bundle id, so macOS keeps its permissions separate, as on another Mac. It
 only needs Screen Recording if you view it from the first instance. Its log is in
 `~/Library/Application Support/lankvm-2/lankvm.log`.
@@ -465,8 +603,8 @@ Both run over loopback, so they test everything except a real network: Wi-Fi jit
 the firewall, and macOS's Local Network permission. Check those with a second Mac.
 
 **Remote control on one Mac.** `scripts/e2e-control.sh` runs a test host (port 47810), viewer
-(47811) and headless probe as three pre-paired devices, next to (and without touching) the LanKVM
-you use on 47800. **LanKVM Input Lab** (`scripts/input-lab.swift`) is the target app: it logs
+(47811) and headless probe as three pre-paired devices, next to (and without touching) the Farscreen
+you use on 47800. **Farscreen Input Lab** (`scripts/input-lab.swift`) is the target app: it logs
 every event it receives and flips a big square black/white on each click, for latency tests.
 
 ```bash
@@ -480,18 +618,18 @@ python scripts/e2e/check_lab.py target/e2e/input-lab.jsonl
 ```
 
 `host record` injects nothing and writes the events it would post to `target/e2e/host/injected.jsonl`
-instead (no permission needed). `host hid` needs Accessibility for LanKVM and moves the real mouse,
+instead (no permission needed). `host hid` needs Accessibility for Farscreen and moves the real mouse,
 so leave the Mac alone while it runs; a guard drops anything that wouldn't land in Input Lab,
 and control ends by itself after two minutes. `scripts/e2e/` has scenarios for typing, clicks,
 drags, scrolling, a viewer that goes silent while holding a key, and a disconnect mid-press.
-`./scripts/e2e-control.sh viewer` starts LanKVM 2 against the test host for trying the real
+`./scripts/e2e-control.sh viewer` starts Farscreen 2 against the test host for trying the real
 viewer window (on one Mac the pointer and keyboard are shared, so the viewer ignores the input
 its own host injects).
 
 `cargo test --workspace` covers the control path without any permission: two cores talk over
 real QUIC on loopback while the host records what it would inject (`crates/core/tests/control_loopback.rs`).
 
-**The shared clipboard on one Mac.** Two copies of LanKVM on the same Mac have the same
+**The shared clipboard on one Mac.** Two copies of Farscreen on the same Mac have the same
 clipboard, so they don't share it. `LANKVM_CLIPBOARD=<name>` gives an instance a pasteboard of its
 own instead (`off`: none), which it then shares; `crates/core/tests/clipboard_loopback.rs` runs two
 cores that way, never touching your clipboard.
@@ -499,26 +637,26 @@ cores that way, never touching your clipboard.
 **The microphone on one Mac.** `LANKVM_MICROPHONE=tone` makes an instance send a 440 Hz tone
 (`tone:1000`: another pitch) instead of its microphone, and `off` none; `./scripts/second-instance.sh`
 passes it on. `crates/core/tests/microphone_loopback.rs` runs two cores with a tone and a recording
-in place of LanKVM Microphone, never touching your audio devices, and `./scripts/build-audio-driver.sh`
+in place of Farscreen Microphone, never touching your audio devices, and `./scripts/build-audio-driver.sh`
 checks the driver itself by loading it as macOS's audio system does, without installing it. With the
 driver installed, `probe HOST --microphone --seconds 30` sends the tone to a host for real.
 
 **Internet access on one Mac.** `LANKVM_TEST_LOOPBACK_IS_INTERNET=1` makes an instance treat
 loopback as the internet, so its connections over `127.0.0.1` go through the gate, the knock and
-the internet checks; the router is left alone, and so is the LanKVM server unless
+the internet checks; the router is left alone, and so is the Farscreen server unless
 `LANKVM_RENDEZVOUS` names one. Pair the two instances without it first (pairing never runs over
 the internet), then restart both with it. `crates/core/tests/internet_loopback.rs` does the same
-in `cargo test`, with an in-process LanKVM server (`transport::test_server`) for connecting
+in `cargo test`, with an in-process Farscreen server (`transport::test_server`) for connecting
 through a server: punched, relayed, and when that server lies about where each Mac is.
 
-`LANKVM_RENDEZVOUS=host:port` sets the LanKVM server an instance registers with, in place of the
+`LANKVM_RENDEZVOUS=host:port` sets the Farscreen server an instance registers with, in place of the
 setting (`LANKVM_RENDEZVOUS=` with nothing: none). `LANKVM_TEST_FORCE_RELAY=1` makes a viewer
 reach paired Macs (Connect in Paired Devices) through their server's relay alone, without trying
 a direct path.
 
 **The viewer window, measured from outside.** `scripts/viewer-bench.sh [MODE [LABEL]]` runs the
-host copy, a virtual display animated by Frame Source and the GUI viewer copy (LanKVM 2), and
-films the viewer window with LanKVM's screen scope (the app run with `LANKVM_SCOPE_LOG`, for its
+host copy, a virtual display animated by Frame Source and the GUI viewer copy (Farscreen 2), and
+films the viewer window with Farscreen's screen scope (the app run with `LANKVM_SCOPE_LOG`, for its
 Screen Recording permission), reading each frame's number off the glass: source drawn → on this
 screen, and distinct frames shown per second. `python3 scripts/viewer-report.py
 target/e2e/bench/RUN...` puts runs side by side. On one Mac the viewer shares the GPU with the
@@ -545,7 +683,7 @@ and unlocked while it runs.
   local network. The viewer keeps it in `internet-hosts.json` (likewise private). After the
   knock, TLS still has to prove the device holds the certificate the key was made for, and the
   device has to be paired.
-- **The LanKVM server** knows each registered host by an ID derived from a key only that host has
+- **The Farscreen server** knows each registered host by an ID derived from a key only that host has
   (`rendezvous-key.p8`, private): nobody else can register under its ID or move it elsewhere. A
   viewer asks for an introduction with a token made from its access key, for that request and the
   current 10-minute period; only the host checks it, and it answers nothing that doesn't check
@@ -567,7 +705,7 @@ and unlocked while it runs.
   in a genuine request, and they carry a value only the pair can make, so the viewer connects
   only where the host really is; everything after that is the knock and TLS as above. Where DHT
   nodes see the host is only ever told to its viewers inside its sealed notes: strangers say
-  it, so viewers don't keep it as an address to knock at. LanKVM never sends to an address a
+  it, so viewers don't keep it as an address to knock at. Farscreen never sends to an address a
   DHT node names on a local network (loopback, private, link-local).
 - **Forget** revokes a viewer's key at once and ends its sessions. Turning internet access off
   stops all knocks and ends every session that came over the internet.
@@ -576,7 +714,7 @@ and unlocked while it runs.
 - What a stranger scanning the port sees: nothing. One answer can still get out: QUIC's
   stateless reset for a packet addressed to a connection ID the host issued earlier. Only
   someone who watched an earlier session's packets has one, and all it tells them is that
-  LanKVM still runs there.
+  Farscreen still runs there.
 - Each install has its own certificate (`~/Library/Application Support/lankvm/`). The connection
   is encrypted with TLS 1.3.
 - First contact requires the PIN shown on the host. Pairing uses SPAKE2 bound to both
@@ -589,7 +727,7 @@ and unlocked while it runs.
   windows, so it counts as control. The host user can always remove it (This Mac, the menu-bar
   icon, **⌃⌥⌘.**); quitting or crashing removes it too, and macOS puts the screens back.
 - Only paired devices can view, and controlling needs more: the host's **Let paired Macs control
-  this Mac** setting (stored in the data folder) and macOS Accessibility permission for LanKVM on
+  this Mac** setting (stored in the data folder) and macOS Accessibility permission for Farscreen on
   the host. One device controls at a time. Input is ignored unless granted,
   checked and clamped (key codes, buttons, scroll values), and a flood of presses ends control.
   A viewer that floods control requests or stops reading what the host sends is disconnected.
@@ -607,26 +745,26 @@ and unlocked while it runs.
 ## Troubleshooting
 
 - **Logs:** `~/Library/Logs/lankvm.log`. Set `RUST_LOG=debug` for more detail.
-- **"… needs LanKVM Microphone first":** install it on the Mac you view (This Mac → Microphone).
+- **"… needs Farscreen Microphone first":** install it on the Mac you view (This Mac → Microphone).
   If This Mac says *Not loaded*, click **Restart Audio…** or restart that Mac.
-  `system_profiler SPAudioDataType | grep -A3 "LanKVM Microphone"` shows whether macOS has it.
-- **The other Mac hears silence:** on your Mac, allow LanKVM under Privacy & Security →
+  `system_profiler SPAudioDataType | grep -A3 "Farscreen Microphone"` shows whether macOS has it.
+- **The other Mac hears silence:** on your Mac, allow Farscreen under Privacy & Security →
   Microphone, and check the input level of your microphone in Sound settings.
 - **"hasn't allowed Screen Recording":** recent macOS versions never prompt for this and don't
   list the app automatically. In System Settings → Privacy & Security → Screen & System Audio
-  Recording, drag LanKVM into the list (or click + and choose it), switch it on, and relaunch
-  LanKVM. The This Mac page has buttons for each step.
-- **"hasn't allowed LanKVM to control it":** on that Mac, open This Mac → Remote control →
-  Allow Control…, and switch LanKVM on under Privacy & Security → Accessibility. If it's already
-  on but control still fails, remove it with −, add it again, and relaunch LanKVM.
-- **Spaces and Mission Control swipes act on your own Mac while controlling:** LanKVM needs
+  Recording, drag Farscreen into the list (or click + and choose it), switch it on, and relaunch
+  Farscreen. The This Mac page has buttons for each step.
+- **"hasn't allowed Farscreen to control it":** on that Mac, open This Mac → Remote control →
+  Allow Control…, and switch Farscreen on under Privacy & Security → Accessibility. If it's already
+  on but control still fails, remove it with −, add it again, and relaunch Farscreen.
+- **Spaces and Mission Control swipes act on your own Mac while controlling:** Farscreen needs
   Accessibility on the Mac you control *from* too (Privacy & Security → Accessibility). Pinch,
   rotate and page swipes work without it.
 - **Reset a permission:** `tccutil reset ScreenCapture dev.lankvm.LanKVM` (or `Accessibility`)
-- **"… isn't reachable over the internet right now":** the LanKVM server doesn't know that Mac:
-  LanKVM isn't running there, or its internet access is off. **"Couldn't reach the LanKVM server
+- **"… isn't reachable over the internet right now":** the Farscreen server doesn't know that Mac:
+  Farscreen isn't running there, or its internet access is off. **"Couldn't reach the Farscreen server
   at …":** this Mac's network blocks it (UDP 3478), or the server is down. **"… didn't answer
-  through the LanKVM server":** that Mac no longer takes this one's key (it forgot this Mac:
+  through the Farscreen server":** that Mac no longer takes this one's key (it forgot this Mac:
   connect on the local network once more), or the two clocks differ by over 10 minutes.
 - **"No answer from …" over the internet:** on the Mac you connect to, look at This Mac →
   Internet access. *The router didn't answer* or *can't open ports automatically*: turn on UPnP
@@ -650,7 +788,7 @@ and unlocked while it runs.
 - **A virtual display looks soft:** go full screen (⌃⌘F) on the screen whose size it matches; in a
   window the picture is scaled.
 - **Windows are on a display you can't see** (on the Mac that made a virtual display): click
-  **Use This Mac's Own Screen** in LanKVM's menu-bar icon, press **⌃⌥⌘.**, or quit LanKVM.
+  **Use This Mac's Own Screen** in Farscreen's menu-bar icon, press **⌃⌥⌘.**, or quit Farscreen.
 - `cargo test -p platform-mac --test virtual_display -- --ignored` creates a virtual display for a
   second (next to your screen) to check this macOS still supports them.
 
@@ -659,13 +797,13 @@ and unlocked while it runs.
 | Path | What |
 |---|---|
 | `crates/protocol` | Wire messages, video packet header |
-| `crates/transport` | QUIC endpoint, LAN congestion control, identity, pairing, packetizer/reassembler, the gate that keeps the port silent to the internet (`gate.rs`, `knock.rs`, `cid.rs`), the LanKVM server's protocol and relay on the socket (`rendezvous.rs`, with an in-process server for tests in `test_server.rs`) |
+| `crates/transport` | QUIC endpoint, LAN congestion control, identity, pairing, packetizer/reassembler, the gate that keeps the port silent to the internet (`gate.rs`, `knock.rs`, `cid.rs`), the Farscreen server's protocol and relay on the socket (`rendezvous.rs`, with an in-process server for tests in `test_server.rs`) |
 | `crates/platform-mac` | ScreenCaptureKit capture, finding the tiles that changed (`tiler.rs`), VideoToolbox encode/decode, zero-copy GPU import, input injection (`inject.rs`, `keys.rs`), cursor shapes (`cursor.rs`), the clipboard (`clipboard.rs`), microphone capture and playback (`audio.rs`), virtual displays (`virtual_display.rs`), router port mapping (`portmap.rs`) |
-| `crates/core` | Host service and its tiled encode pipeline (`host.rs`), viewer sessions (`client.rs`), remote control (`control.rs`), the shared clipboard (`clipboard.rs`), the shared microphone (`microphone.rs`), virtual displays for viewers (`displays.rs`), the names, local addresses and connection types of the Macs this one controls (`address_book.rs`), internet access keys, addresses and port mapping (`internet.rs`), registration with and introductions through the LanKVM server (`rendezvous.rs`), Metal render thread (`view.rs`, `render.rs`), C ABI (`ffi.rs`) for the app |
+| `crates/core` | Host service and its tiled encode pipeline (`host.rs`), viewer sessions (`client.rs`), remote control (`control.rs`), the shared clipboard (`clipboard.rs`), the shared microphone (`microphone.rs`), virtual displays for viewers (`displays.rs`), the names, local addresses and connection types of the Macs this one controls (`address_book.rs`), internet access keys, addresses and port mapping (`internet.rs`), registration with and introductions through the Farscreen server (`rendezvous.rs`), Metal render thread (`view.rs`, `render.rs`), C ABI (`ffi.rs`) for the app |
 | `macos/` | SwiftUI app (SwiftPM). `Sources/CLanKVM/include/lankvm.h` is the C interface |
-| `macos/AudioDriver` | LanKVM Microphone, the Audio Server plug-in (C) that gives a Mac the microphone other Macs share, and its test |
-| `scripts/bundle.sh` | Builds and signs `LanKVM.app` |
-| `scripts/build-audio-driver.sh`, `scripts/install-audio-driver.sh` | Build and check LanKVM Microphone; install or remove it from Terminal |
+| `macos/AudioDriver` | Farscreen Microphone, the Audio Server plug-in (C) that gives a Mac the microphone other Macs share, and its test |
+| `scripts/bundle.sh` | Builds and signs `Farscreen.app` |
+| `scripts/build-audio-driver.sh`, `scripts/install-audio-driver.sh` | Build and check Farscreen Microphone; install or remove it from Terminal |
 | `scripts/make-icon.swift` | Regenerates `macos/Resources/AppIcon.icns` |
 | `scripts/e2e-control.sh`, `scripts/e2e/`, `scripts/input-lab.swift` | One-Mac remote-control tests |
 | `scripts/viewer-bench.sh`, `scripts/viewer-report.py`, `macos/Sources/LanKVM/BenchScope.swift` | Source-to-glass bench of the viewer window |
@@ -681,3 +819,11 @@ to PNG (light and dark):
 ```bash
 macos/.build/release/LanKVM --snapshot /tmp/lankvm-shots
 ```
+
+## License
+
+MIT, as declared in [`Cargo.toml`](Cargo.toml).
+
+<p align="center">
+  <sub>Farscreen: open-source remote desktop for Mac. If it's useful to you, a ⭐ helps other Mac users find it.</sub>
+</p>

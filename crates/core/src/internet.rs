@@ -273,7 +273,7 @@ impl HostInternet {
         if let Err(e) = stopping {
             tracing::warn!("couldn't stop the port mapping: {e}");
         } else if done_rx.recv_timeout(wait) == Err(std::sync::mpsc::RecvTimeoutError::Timeout) {
-            tracing::warn!("the port mapping didn't stop in time: mDNSResponder removes it once LanKVM quits");
+            tracing::warn!("the port mapping didn't stop in time: mDNSResponder removes it once Farscreen quits");
         }
     }
 

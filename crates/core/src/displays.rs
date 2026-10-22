@@ -158,7 +158,7 @@ impl Displays {
     pub(crate) async fn acquire(&self, session: u64, spec: VirtualDisplaySpec, epoch: u64) -> Result<Acquired, Refusal> {
         let (reply, answer) = oneshot::channel();
         self.send(Cmd::Acquire { session, spec, epoch, reply });
-        answer.await.unwrap_or_else(|_| Err((DisplayReason::FAILED, "LanKVM's virtual displays stopped working.".into())))
+        answer.await.unwrap_or_else(|_| Err((DisplayReason::FAILED, "Farscreen's virtual displays stopped working.".into())))
     }
 
     /// Returns once the display is gone (or kept for the device's other sessions) and macOS has
@@ -511,10 +511,10 @@ impl Worker {
                 i
             }
             None => {
-                let id = self.screens.create(&format!("LanKVM ({name})"), serial_for(&self.host_fp, &owner), mode).map_err(fail)?;
+                let id = self.screens.create(&format!("Farscreen ({name})"), serial_for(&self.host_fp, &owner), mode).map_err(fail)?;
                 tracing::info!(display = id, viewer = %name, ?spec, "virtual display created");
                 if self.awake.is_none() {
-                    self.awake = DisplaysAwake::new("LanKVM virtual display");
+                    self.awake = DisplaysAwake::new("Farscreen virtual display");
                 }
                 self.entries.push(Entry { owner, owner_name: name.clone(), id, spec: VirtualDisplaySpec { arrangement: Arrangement::EXTEND, ..spec }, remove_at: None });
                 self.entries.len() - 1

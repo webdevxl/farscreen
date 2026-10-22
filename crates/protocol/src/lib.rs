@@ -211,7 +211,7 @@ impl VirtualDisplaySpec {
             return Err(format!("A virtual display needs an even number of pixels each way, not {w}×{h}."));
         }
         if !self.arrangement.is_known() {
-            return Err("That host doesn't know this way of arranging a display. Update LanKVM there.".into());
+            return Err("That host doesn't know this way of arranging a display. Update Farscreen there.".into());
         }
         Ok(Self { refresh_hz: self.refresh_hz.clamp(Self::MIN_REFRESH_HZ, Self::MAX_REFRESH_HZ), ..self })
     }
@@ -1412,7 +1412,7 @@ mod tests {
         assert!(VirtualDisplaySpec { width: 8192, height: 8192, ..ultrawide() }.validated().unwrap_err().contains("8K"));
         assert!(VirtualDisplaySpec { width: 4096, height: 1000, ..ultrawide() }.validated().unwrap_err().contains("4 times"));
         assert!(VirtualDisplaySpec { width: 1000, height: 4096, ..ultrawide() }.validated().unwrap_err().contains("4 times"));
-        assert!(VirtualDisplaySpec { arrangement: Arrangement(3), ..ultrawide() }.validated().unwrap_err().contains("Update LanKVM"));
+        assert!(VirtualDisplaySpec { arrangement: Arrangement(3), ..ultrawide() }.validated().unwrap_err().contains("Update Farscreen"));
     }
 
     #[test]

@@ -511,7 +511,7 @@ mod tests {
     #[test]
     #[ignore = "needs LanKVM Microphone installed, and the microphone permission"]
     fn the_driver_plays_the_feed_out_of_the_microphone() {
-        assert!(microphone_driver_ready(), "LanKVM Microphone isn't installed (./scripts/install-audio-driver.sh)");
+        assert!(microphone_driver_ready(), "Farscreen Microphone isn't installed (./scripts/install-audio-driver.sh)");
         let microphone = device_with_uid(MICROPHONE_UID).expect("the microphone");
         let mut phase = 0.0f64;
         let playback = Playback::start(

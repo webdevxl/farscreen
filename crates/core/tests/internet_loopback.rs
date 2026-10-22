@@ -528,7 +528,7 @@ fn a_host_with_internet_access_off_isnt_online_at_the_lankvm_server() {
 
     let started = Instant::now();
     let error = s.viewer.connect(&s.paired_target(), WAIT).expect_err("not online");
-    assert_eq!(error, "host isn't reachable over the internet right now: LanKVM isn't running there, or its internet access is off.");
+    assert_eq!(error, "host isn't reachable over the internet right now: Farscreen isn't running there, or its internet access is off.");
     assert!(started.elapsed() < Duration::from_secs(2), "the server says so at once");
 }
 
@@ -539,7 +539,7 @@ fn a_forgotten_viewer_gets_no_answer_through_the_lankvm_server() {
     s.host.core.forget_device("viewer", &s.viewer_fp);
 
     let error = s.viewer.connect(&s.paired_target(), NO_ANSWER_WAIT).expect_err("no answer");
-    assert_eq!(error, "host didn't answer through the LanKVM server.");
+    assert_eq!(error, "host didn't answer through the Farscreen server.");
     assert!(s.host.status()["viewers"].as_array().unwrap().is_empty());
     assert_eq!(server.server.relay_sessions(), 0);
 }
@@ -554,7 +554,7 @@ fn a_lankvm_server_that_is_down_is_named() {
     // Nothing answers, not even a request any running server answers: the server is down, not
     // the host quiet. (The host notices at its next keepalive, 20 s on.)
     let error = s.viewer.connect(&s.paired_target(), NO_ANSWER_WAIT).expect_err("no server");
-    assert_eq!(error, format!("Couldn't reach the LanKVM server at {addr}."));
+    assert_eq!(error, format!("Couldn't reach the Farscreen server at {addr}."));
 }
 
 #[test]
@@ -566,7 +566,7 @@ fn a_lankvm_server_on_the_local_network_isnt_used() {
     s.viewer.core.set_loopback_is_internet(false);
     let started = Instant::now();
     let error = s.viewer.connect(&s.paired_target(), WAIT).expect_err("not used");
-    assert_eq!(error, format!("host uses a LanKVM server at {}, which isn't on the internet.", server.addr()));
+    assert_eq!(error, format!("host uses a Farscreen server at {}, which isn't on the internet.", server.addr()));
     assert!(started.elapsed() < Duration::from_secs(2), "fails at once, without asking");
 }
 

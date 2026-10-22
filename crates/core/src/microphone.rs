@@ -211,7 +211,7 @@ impl Worker {
             &MicSource::Tone(hz) => std::thread::Builder::new()
                 .name("lankvm-microphone".into())
                 .spawn(move || send_tone(hz, mic, thread_stop)),
-            MicSource::Off => return Err((MicrophoneReason::NO_INPUT, "This copy of LanKVM shares no microphone.".into())),
+            MicSource::Off => return Err((MicrophoneReason::NO_INPUT, "This copy of Farscreen shares no microphone.".into())),
         };
         spawned.map_err(|e| (MicrophoneReason::CAPTURE_FAILED, format!("Couldn't start sending this Mac's microphone: {e}")))?;
         Ok(Self { stop })
@@ -226,7 +226,7 @@ fn open_default_input(tx: std_mpsc::Sender<Vec<f32>>) -> Result<Capture, (Microp
     if audio::device_uid(device).as_deref() == Some(MICROPHONE_UID) {
         return Err((
             MicrophoneReason::LOOPBACK,
-            "This Mac's microphone is LanKVM Microphone, which plays what other Macs send here. Choose another one in System Settings → Sound → Input.".into(),
+            "This Mac's microphone is Farscreen Microphone, which plays what other Macs send here. Choose another one in System Settings → Sound → Input.".into(),
         ));
     }
     let name = audio::device_name(device).unwrap_or_default();
@@ -610,11 +610,11 @@ impl Speaker {
         if output.is_none() || !stalled {
             return;
         }
-        tracing::warn!("LanKVM Microphone stopped taking audio; starting it again");
+        tracing::warn!("Farscreen Microphone stopped taking audio; starting it again");
         drop(output.take());
         match self.start_output() {
             Ok(started) => *output = Some(started),
-            Err(e) => tracing::warn!("LanKVM Microphone: {e:#}"),
+            Err(e) => tracing::warn!("Farscreen Microphone: {e:#}"),
         }
     }
 
@@ -634,11 +634,11 @@ impl Speaker {
         match &self.sink {
             MicSink::System => {
                 let playback = Playback::start(FEED_UID, Box::new(fill))?;
-                tracing::info!("playing viewers' microphones into LanKVM Microphone");
+                tracing::info!("playing viewers' microphones into Farscreen Microphone");
                 Ok(Output::Device(playback))
             }
             MicSink::Record(recording) => Ok(Output::Recorder(record(recording.clone(), fill))),
-            MicSink::Off => bail!("this copy of LanKVM plays no microphones"),
+            MicSink::Off => bail!("this copy of Farscreen plays no microphones"),
         }
     }
 }

@@ -156,8 +156,8 @@ int main(int argc, char **argv) {
     CHECK(Ids(kAudioObjectPlugInObject, kAudioPlugInPropertyDeviceList, kAudioObjectPropertyScopeGlobal, devices, 1) == 1,
           "a list is cut to the buffer");
 
-    CHECK(StringIs(mic, kAudioObjectPropertyName, "LanKVM Microphone"), "mic name");
-    CHECK(StringIs(feed, kAudioObjectPropertyName, "LanKVM Microphone Feed"), "feed name");
+    CHECK(StringIs(mic, kAudioObjectPropertyName, "Farscreen Microphone"), "mic name");
+    CHECK(StringIs(feed, kAudioObjectPropertyName, "Farscreen Microphone Feed"), "feed name");
     CHECK(StringIs(mic, kAudioDevicePropertyDeviceUID, "dev.lankvm.microphone"), "mic UID");
     CHECK(StringIs(feed, kAudioDevicePropertyDeviceUID, "dev.lankvm.microphone.feed"), "feed UID");
     CHECK(GetU32(mic, kAudioObjectPropertyClass, kAudioObjectPropertyScopeGlobal) == kAudioDeviceClassID, "device class");
@@ -257,6 +257,6 @@ int main(int argc, char **argv) {
         fprintf(stderr, "%d check(s) failed\n", failures);
         return 1;
     }
-    printf("LanKVM Microphone driver: all checks passed\n");
+    printf("Farscreen Microphone driver: all checks passed\n");
     return 0;
 }

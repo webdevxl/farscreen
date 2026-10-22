@@ -105,7 +105,7 @@ private struct ViewerContent: View {
                         Label("Microphone", systemImage: session.microphone == .on ? "mic.fill" : "mic.slash")
                     }
                     .help(session.microphoneUnavailable
-                          ?? "Share this Mac’s microphone: apps on “\(info.hostName)” hear it as LanKVM Microphone")
+                          ?? "Share this Mac’s microphone: apps on “\(info.hostName)” hear it as Farscreen Microphone")
                     Toggle(isOn: $showStats) {
                         Label("Statistics", systemImage: "gauge.with.dots.needle.33percent")
                     }
@@ -387,7 +387,7 @@ struct GestureAccessHint: View {
         Group {
             if relevant && !trusted {
                 BannerPill(icon: "hand.draw",
-                           text: "Mission Control and Spaces swipes still act on this Mac. To send them to “\(hostName)”, allow LanKVM in Accessibility.",
+                           text: "Mission Control and Spaces swipes still act on this Mac. To send them to “\(hostName)”, allow Farscreen in Accessibility.",
                            tint: Color(hex: 0xE5B45A),
                            action: ("Open Settings", { CoreModel.shared.requestControlPermission() }),
                            dismiss: { session.gestureHintDismissed = true })

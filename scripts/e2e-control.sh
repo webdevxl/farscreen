@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# End-to-end test of remote control on one Mac, with separate LanKVM instances acting as
-# separate Macs. Nothing here touches a LanKVM you already run on the default port (47800).
+# End-to-end test of remote control on one Mac, with separate Farscreen instances acting as
+# separate Macs. Nothing here touches a Farscreen you already run on the default port (47800).
 #
 #   scripts/e2e-control.sh setup            # build, create identities, pre-pair host/viewer/probe
 #   scripts/e2e-control.sh host [record|hid|pid] # start the host copy (default: record, injects nothing)
-#   scripts/e2e-control.sh viewer           # start "LanKVM 2" as the viewer (connects itself, logs stats)
-#   scripts/e2e-control.sh lab              # start LanKVM Input Lab (logs what it receives)
+#   scripts/e2e-control.sh viewer           # start "Farscreen 2" as the viewer (connects itself, logs stats)
+#   scripts/e2e-control.sh lab              # start Farscreen Input Lab (logs what it receives)
 #   scripts/e2e-control.sh probe ARGS...    # run the headless viewer against the host copy
 #   scripts/e2e-control.sh stop             # quit the test copies
 #
 # The host copy is the same signed app (bundle id dev.lankvm.LanKVM), so it shares the Screen
-# Recording and Accessibility grants of your LanKVM. Modes:
+# Recording and Accessibility grants of your Farscreen. Modes:
 #   record  writes the events it would inject to $E2E/host/injected.jsonl, posts nothing
 #           (no permission needed, no effect on this Mac);
 #   hid     really moves the mouse and types, but only into Input Lab's windows (start the lab
@@ -21,7 +21,7 @@
 # events its host injected, so they don't loop. Control ends by itself after TTL seconds.
 #
 # Env: E2E (default target/e2e), HOST_PORT (47810), VIEWER_PORT (47811), TTL (120),
-#      APP (the app bundle the host and viewer copies run, default target/release/LanKVM.app),
+#      APP (the app bundle the host and viewer copies run, default target/release/Farscreen.app),
 #      PROBE (the probe binary, default target/release/examples/probe),
 #      HIDDEN=1 (start the host copy hidden: its window never shows),
 #      STATS=1 (the viewer shows its stats overlay; off by default, it changes what's measured).
@@ -35,7 +35,7 @@ cd "$(dirname "$0")/.."
 E2E="${E2E:-$PWD/target/e2e}"
 HOST_PORT="${HOST_PORT:-47810}"
 VIEWER_PORT="${VIEWER_PORT:-47811}"
-APP="${APP:-target/release/LanKVM.app}"
+APP="${APP:-target/release/Farscreen.app}"
 PROBE="${PROBE:-target/release/examples/probe}"
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$PATH"
 

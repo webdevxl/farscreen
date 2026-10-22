@@ -353,7 +353,7 @@ private final class Scope: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
     func lookUp(until deadline: Double) {
         findTarget { [self] target, error in
             if let error {
-                return finish(1, error: "can't list windows (\(error.localizedDescription)); LanKVM needs Screen Recording here, and the scope must be launched with open")
+                return finish(1, error: "can't list windows (\(error.localizedDescription)); Farscreen needs Screen Recording here, and the scope must be launched with open")
             }
             if let target { return start(target) }
             guard CACurrentMediaTime() < deadline else {
@@ -417,7 +417,7 @@ private final class Scope: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
         stream.startCapture { [self] error in
             queue.async { [self] in
                 if let error {
-                    return finish(1, error: "can't capture: \(error.localizedDescription); LanKVM needs Screen Recording here")
+                    return finish(1, error: "can't capture: \(error.localizedDescription); Farscreen needs Screen Recording here")
                 }
                 started = CACurrentMediaTime()
                 startedEpoch = Date().timeIntervalSince1970

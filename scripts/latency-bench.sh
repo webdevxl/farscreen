@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Latency and frame-rate bench on this one Mac, without the viewer filming itself: the host copy
 # (scripts/e2e-control.sh host, record mode, launched hidden) streams a virtual display that no
-# screen here shows, LanKVM Frame Source animates that display full screen, and the headless probe
+# screen here shows, Farscreen Frame Source animates that display full screen, and the headless probe
 # reads each frame's number off the decoded video. Nothing appears on this Mac's own screens but
 # the virtual display itself (next to them), and the host copy's Dock icon and menu bar item.
 #
@@ -15,12 +15,12 @@
 # meta.txt; with VIEWER=1, viewer.log and viewer-stats.log instead of the probe's files.
 #
 # Env:
-#   APP=target/release/LanKVM.app    the build the host (and viewer) copies run, e.g. target/baseline/LanKVM.app
+#   APP=target/release/Farscreen.app the build the host (and viewer) copies run, e.g. target/baseline/Farscreen.app
 #   PROBE=target/release/examples/probe   the probe build; it needs --barcode-log and --trace
 #                                    (target/baseline/probe predates them)
 #   DURATION=10                      seconds measured
 #   SIZE=2560x1600@2x REFRESH=120    the virtual display (pixels; @2x: Retina); HZ=120: Frame Source's rate
-#   VIEWER=1                         the GUI viewer copy ("LanKVM 2") instead of the probe: it shows the
+#   VIEWER=1                         the GUI viewer copy ("Farscreen 2") instead of the probe: it shows the
 #                                    virtual display in a window on this Mac's own screen (not captured)
 #                                    and logs its stats every second. STATS=1 also shows its overlay,
 #                                    MTL_HUD_ENABLED=1 Metal's HUD.
@@ -28,7 +28,7 @@
 #   LANKVM_KEEP_WARM_MS (viewer)     passed on.
 #
 # Needs `scripts/e2e-control.sh setup` once (identities and pairings), so nothing asks for a PIN.
-# Stops what it started; never touches the LanKVM on the default port (47800).
+# Stops what it started; never touches the Farscreen on the default port (47800).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -37,7 +37,7 @@ case "$MODE" in
 tiny | small | band | scroll | full) ;;
 *) echo "error: MODE is tiny, small, band, scroll or full" >&2; exit 2 ;;
 esac
-export APP="${APP:-target/release/LanKVM.app}"
+export APP="${APP:-target/release/Farscreen.app}"
 export PROBE="${PROBE:-target/release/examples/probe}"
 export E2E="${E2E:-$PWD/target/e2e}"
 export HOST_PORT="${HOST_PORT:-47810}" VIEWER_PORT="${VIEWER_PORT:-47811}"
@@ -50,8 +50,8 @@ LABEL="${2:-$MODE-$(basename "$(dirname "$APP")")-$(date +%H%M%S)}"
 OUT="$E2E/bench/$LABEL"
 FRAME_SOURCE=target/frame-source
 
-[[ "$HOST_PORT" != 47800 && "$VIEWER_PORT" != 47800 ]] || { echo "error: 47800 belongs to your own LanKVM" >&2; exit 2; }
-[[ -d "$APP" ]] || { echo "error: $APP not found (scripts/bundle.sh builds target/release/LanKVM.app)" >&2; exit 1; }
+[[ "$HOST_PORT" != 47800 && "$VIEWER_PORT" != 47800 ]] || { echo "error: 47800 belongs to your own Farscreen" >&2; exit 2; }
+[[ -d "$APP" ]] || { echo "error: $APP not found (scripts/bundle.sh builds target/release/Farscreen.app)" >&2; exit 1; }
 peer="$([[ "$VIEWER" == 1 ]] && echo e2e-viewer || echo e2e-probe)"
 grep -q " $peer\$" "$E2E/host/trusted-viewers.txt" 2>/dev/null \
     || { echo "error: the host copy doesn't know $peer yet; run scripts/e2e-control.sh setup first" >&2; exit 1; }
@@ -116,7 +116,7 @@ trap 'exit 130' INT TERM
     echo "label=$LABEL"
     echo "mode=$MODE"
     echo "app=$APP"
-    echo "app_built=$(stat -f %Sm -t %Y-%m-%dT%H:%M:%S "$APP/Contents/MacOS/LanKVM" 2>/dev/null || echo -)"
+    echo "app_built=$(stat -f %Sm -t %Y-%m-%dT%H:%M:%S "$APP"/Contents/MacOS/* 2>/dev/null || echo -)"
     echo "client=$([[ "$VIEWER" == 1 ]] && echo "viewer" || echo "probe $PROBE")"
     echo "size=$SIZE"
     echo "refresh=$REFRESH"
@@ -166,7 +166,7 @@ done
 [[ -n "$display_id" ]] || { echo "error: no virtual display after 40 s; see $host_log" >&2; exit 1; }
 host_hidden || exit 1
 
-# By its id: the LanKVM people use may have a virtual display of its own here.
+# By its id: the Farscreen people use may have a virtual display of its own here.
 "$FRAME_SOURCE" --screen "display:$display_id" --fullscreen --background --hz "$HZ" --change "$MODE" \
     --log "$OUT/frame-source.jsonl" --seconds "$((DURATION + 5))" >"$OUT/frame-source.err" 2>&1 &
 source_pid=$!

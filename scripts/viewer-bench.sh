@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Source-to-glass bench of LanKVM's real viewer window on this one Mac. The host copy
-# (scripts/e2e-control.sh host, record mode, launched hidden) makes a virtual display that LanKVM
-# Frame Source animates full screen; the GUI viewer copy ("LanKVM 2") shows that display in a
-# window on this Mac's own screen; LanKVM's screen scope (the app run with LANKVM_SCOPE_LOG, for
+# Source-to-glass bench of Farscreen's real viewer window on this one Mac. The host copy
+# (scripts/e2e-control.sh host, record mode, launched hidden) makes a virtual display that Farscreen
+# Frame Source animates full screen; the GUI viewer copy ("Farscreen 2") shows that display in a
+# window on this Mac's own screen; Farscreen's screen scope (the app run with LANKVM_SCOPE_LOG, for
 # its Screen Recording grant) films that window's area of the glass and reads each frame's number.
 # Joined with Frame Source's log by frame number: source frame committed -> that frame on the
 # glass, and how many distinct source frames a second reach the glass. Unlike latency-bench.sh's
@@ -18,9 +18,9 @@
 # meta.txt.
 #
 # Env:
-#   APP=target/release/LanKVM.app    the build the host and viewer copies run
+#   APP=target/release/Farscreen.app the build the host and viewer copies run
 #   SCOPE_APP=$APP                   the build the scope runs in: it must have the scope and
-#                                    LanKVM's signature (that's where the Screen Recording grant is)
+#                                    Farscreen's signature (that's where the Screen Recording grant is)
 #   DURATION=10 WARMUP=3             seconds measured, once frames have flowed this long
 #   SIZE=2560x1600@2x REFRESH=120    the virtual display (pixels; @2x: Retina); HZ=120 Frame Source's rate
 #   SCOPE_FPS=240                    the scope's capture rate limit
@@ -33,7 +33,7 @@
 # Needs `scripts/e2e-control.sh setup` once (identities and pairings), so nothing asks for a PIN.
 # Leave this Mac alone during a run: the scope films the viewer window (keep other windows and the
 # pointer off it, and the pointer off the virtual display), and the screen must stay unlocked (the
-# run keeps it awake). Stops everything it started; never touches the LanKVM on the default port
+# run keeps it awake). Stops everything it started; never touches the Farscreen on the default port
 # (47800).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -43,10 +43,12 @@ case "$MODE" in
 tiny | small | band | scroll | full) ;;
 *) echo "usage: scripts/viewer-bench.sh [tiny|small|band|scroll|full [LABEL]]" >&2; exit 2 ;;
 esac
-export APP="${APP:-target/release/LanKVM.app}"
+export APP="${APP:-target/release/Farscreen.app}"
 export E2E="${E2E:-$PWD/target/e2e}"
 export HOST_PORT="${HOST_PORT:-47810}" VIEWER_PORT="${VIEWER_PORT:-47811}"
 SCOPE_APP="${SCOPE_APP:-$APP}"
+# The app's executable: Farscreen, or LanKVM in a build from before the rename.
+APP_NAMES='Farscreen|LanKVM'
 DURATION="${DURATION:-10}"
 WARMUP="${WARMUP:-3}"
 SIZE="${SIZE:-2560x1600@2x}"
@@ -63,10 +65,10 @@ SCOPE_WAIT=10
 for n in "$DURATION" "$WARMUP" "$REFRESH" "$HZ" "$SCOPE_FPS" "$STREAM_WAIT"; do
     [[ "$n" =~ ^[0-9]+$ ]] || { echo "error: DURATION, WARMUP, REFRESH, HZ, SCOPE_FPS and STREAM_WAIT are whole numbers" >&2; exit 2; }
 done
-[[ "$HOST_PORT" != 47800 && "$VIEWER_PORT" != 47800 ]] || { echo "error: 47800 belongs to your own LanKVM" >&2; exit 2; }
-[[ -d "$APP" ]] || { echo "error: $APP not found (scripts/bundle.sh builds target/release/LanKVM.app)" >&2; exit 1; }
-# A build without the scope would start as a whole LanKVM instead.
-grep -aq LANKVM_SCOPE_LOG "$SCOPE_APP/Contents/MacOS/LanKVM" 2>/dev/null \
+[[ "$HOST_PORT" != 47800 && "$VIEWER_PORT" != 47800 ]] || { echo "error: 47800 belongs to your own Farscreen" >&2; exit 2; }
+[[ -d "$APP" ]] || { echo "error: $APP not found (scripts/bundle.sh builds target/release/Farscreen.app)" >&2; exit 1; }
+# A build without the scope would start as a whole Farscreen instead.
+grep -aq LANKVM_SCOPE_LOG "$SCOPE_APP"/Contents/MacOS/* 2>/dev/null \
     || { echo "error: $SCOPE_APP has no screen scope (rebuild with scripts/bundle.sh, or set SCOPE_APP)" >&2; exit 1; }
 grep -q " e2e-viewer\$" "$E2E/host/trusted-viewers.txt" 2>/dev/null \
     || { echo "error: the host copy doesn't know e2e-viewer yet; run scripts/e2e-control.sh setup first" >&2; exit 1; }
@@ -111,8 +113,8 @@ since() { tail -c +"$(($2 + 1))" "$1" 2>/dev/null || true; }
 
 size_of() { stat -f %z "$1" 2>/dev/null || echo 0; }
 
-# Whether pid $1 still runs a program whose name contains $2 (pids get reused).
-runs() { [[ -n "$1" ]] && ps -p "$1" -o comm= 2>/dev/null | grep -qi -- "$2"; }
+# Whether pid $1 still runs a program whose name matches $2 (pids get reused).
+runs() { [[ -n "$1" ]] && ps -p "$1" -o comm= 2>/dev/null | grep -qiE -- "$2"; }
 
 # Stops pid $1 if it still runs $2: SIGTERM, up to 3 s, then SIGKILL.
 stop_pid() {
@@ -128,11 +130,11 @@ note_pid() { [[ -n "$2" ]] && echo "$1 $2" >>"$OUT/.pids" || true; }
 host_pid="" viewer_pid="" source_pid="" scope_pid="" sampler_pid="" awake_pid="" viewer_started=""
 cleanup() {
     local pid
-    stop_pid "$scope_pid" LanKVM
+    stop_pid "$scope_pid" "$APP_NAMES"
     stop_pid "$source_pid" frame-source
     if [[ -n "$viewer_started" ]]; then
         viewer_pid="$(holder "$VIEWER_PORT")"
-        stop_pid "$viewer_pid" LanKVM
+        stop_pid "$viewer_pid" "$APP_NAMES"
     fi
     if [[ -n "$host_pid" ]] && kill "$host_pid" 2>/dev/null; then
         # The virtual display goes with the host copy.
@@ -150,9 +152,9 @@ trap 'exit 130' INT TERM
     echo "label=$LABEL"
     echo "mode=$MODE"
     echo "app=$APP"
-    echo "app_built=$(stat -f %Sm -t %Y-%m-%dT%H:%M:%S "$APP/Contents/MacOS/LanKVM" 2>/dev/null || echo -)"
+    echo "app_built=$(stat -f %Sm -t %Y-%m-%dT%H:%M:%S "$APP"/Contents/MacOS/* 2>/dev/null || echo -)"
     echo "scope_app=$SCOPE_APP"
-    echo "client=viewer (LanKVM 2)"
+    echo "client=viewer (Farscreen 2)"
     echo "size=$SIZE"
     echo "refresh=$REFRESH"
     echo "hz=$HZ"
@@ -211,7 +213,7 @@ done
 [[ -n "$display_id" ]] || { echo "error: no virtual display after 40 s; see $host_log" >&2; exit 1; }
 host_hidden || exit 1
 
-# By its id: the LanKVM people use may have a virtual display of its own here.
+# By its id: the Farscreen people use may have a virtual display of its own here.
 "$FRAME_SOURCE" --screen "display:$display_id" --fullscreen --background --hz "$HZ" --change "$MODE" \
     --log "$OUT/frame-source.jsonl" --seconds "$((STREAM_WAIT + WARMUP + DURATION + SCOPE_WAIT + 30))" \
     >"$OUT/frame-source.err" 2>&1 &
@@ -235,7 +237,7 @@ while ((SECONDS < deadline)); do
         flowing=1
         break
     fi
-    runs "$viewer_pid" LanKVM || { echo "error: the viewer copy quit; see $viewer_log" >&2; exit 1; }
+    runs "$viewer_pid" "$APP_NAMES" || { echo "error: the viewer copy quit; see $viewer_log" >&2; exit 1; }
     sleep 0.2
 done
 [[ -n "$flowing" ]] || { echo "error: no frames after $STREAM_WAIT s" >&2; exit 1; }
@@ -250,7 +252,7 @@ while read -r x y w h; do
     fi
 done <<<"$(windows_of "$viewer_pid")"
 
-# The scope, through LaunchServices so LanKVM's Screen Recording grant applies. The port and data
+# The scope, through LaunchServices so Farscreen's Screen Recording grant applies. The port and data
 # dir are only a safety net: in scope mode the app starts no core.
 open -n -g -j "$SCOPE_APP" --env LANKVM_SCOPE_LOG="$OUT/scope.jsonl" --env LANKVM_SCOPE_PID="$viewer_pid" \
     --env LANKVM_SCOPE_SECONDS="$DURATION" --env LANKVM_SCOPE_FPS="$SCOPE_FPS" --env LANKVM_SCOPE_WAIT="$SCOPE_WAIT" \
@@ -266,9 +268,9 @@ note_pid scope "$scope_pid"
 deadline=$((SECONDS + DURATION + SCOPE_WAIT + 15))
 viewer_alive=1
 while ! grep -q '"type":"summary"' "$OUT/scope.jsonl"; do
-    runs "$scope_pid" LanKVM || break
+    runs "$scope_pid" "$APP_NAMES" || break
     ((SECONDS < deadline)) || { echo "error: the scope didn't finish" >&2; exit 1; }
-    if [[ -n "$viewer_alive" ]] && ! runs "$viewer_pid" LanKVM; then
+    if [[ -n "$viewer_alive" ]] && ! runs "$viewer_pid" "$APP_NAMES"; then
         echo "warning: the viewer quit during the measurement" >&2
         viewer_alive=""
     fi

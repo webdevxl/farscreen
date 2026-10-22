@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct ConnectView: View {
+    /// The example address in the field. Snapshots use a documentation address, like their sample Macs.
+    static var prompt = "192.168.1.20"
+
     @EnvironmentObject private var core: CoreModel
     @Environment(\.openWindow) private var openWindow
     @State private var target = ""
@@ -10,14 +13,14 @@ struct ConnectView: View {
         Page {
             PageHeader(
                 title: "Connect to a Mac",
-                subtitle: "Enter the address shown under This Mac in LanKVM on the other computer."
+                subtitle: "Enter the address shown under This Mac in Farscreen on the other computer."
             )
 
             Card {
                 HStack(spacing: 10) {
                     Image(systemName: "network")
                         .foregroundStyle(Color.lkSecondary)
-                    TextField("192.168.1.20", text: $target)
+                    TextField(Self.prompt, text: $target)
                         .textFieldStyle(.plain)
                         .font(.system(size: 15))
                         .focused($fieldFocused)

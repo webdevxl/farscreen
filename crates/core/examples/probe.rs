@@ -851,7 +851,7 @@ impl Probe {
         }
         if args.microphone {
             match self.microphone() {
-                Ok(()) => println!("microphone on: apps on the host hear it from LanKVM Microphone"),
+                Ok(()) => println!("microphone on: apps on the host hear it from Farscreen Microphone"),
                 Err(why) => {
                     println!("FAIL: microphone refused: {why}");
                     return 1;

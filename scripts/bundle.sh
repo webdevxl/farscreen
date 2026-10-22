@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds target/release/LanKVM.app: the Rust core (static library) linked into the SwiftUI app,
-# with the LanKVM Microphone driver inside (scripts/build-audio-driver.sh), then code-signs it.
+# Builds target/release/Farscreen.app: the Rust core (static library) linked into the SwiftUI app,
+# with the Farscreen Microphone driver inside (scripts/build-audio-driver.sh), then code-signs it.
 #
 # macOS ties privacy grants (Screen Recording, Accessibility) to the app's signature. With a
 # stable signing identity the grants survive rebuilds; with ad-hoc signing ("-") you are
@@ -11,9 +11,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# The bundle id keeps the app's old name, LanKVM: macOS ties its privacy grants to it.
 BUNDLE_ID="dev.lankvm.LanKVM"
 VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-APP="target/release/LanKVM.app"
+APP="target/release/Farscreen.app"
 export MACOSX_DEPLOYMENT_TARGET=14.0
 
 # Find Rust even in shells that haven't loaded it (Homebrew rustup or the rustup installer).
@@ -31,7 +32,7 @@ swift build -c release --package-path macos
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp macos/.build/release/LanKVM "$APP/Contents/MacOS/LanKVM"
+cp macos/.build/release/LanKVM "$APP/Contents/MacOS/Farscreen"
 if [[ -f macos/Resources/AppIcon.icns ]]; then
     cp macos/Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 fi
@@ -44,9 +45,9 @@ cat > "$APP/Contents/Info.plist" <<EOF
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
-    <key>CFBundleName</key><string>LanKVM</string>
-    <key>CFBundleDisplayName</key><string>LanKVM</string>
-    <key>CFBundleExecutable</key><string>LanKVM</string>
+    <key>CFBundleName</key><string>Farscreen</string>
+    <key>CFBundleDisplayName</key><string>Farscreen</string>
+    <key>CFBundleExecutable</key><string>Farscreen</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
@@ -56,11 +57,11 @@ cat > "$APP/Contents/Info.plist" <<EOF
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>LanKVM connects to other Macs on your local network to show and control their screens.</string>
+    <string>Farscreen connects to other Macs on your local network to show and control their screens.</string>
     <key>NSScreenCaptureUsageDescription</key>
-    <string>LanKVM shares this Mac's screen with other Macs on your local network that you pair with.</string>
+    <string>Farscreen shares this Mac's screen with other Macs on your local network that you pair with.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>LanKVM shares this Mac's microphone with a Mac you view or control, when you turn on Share Microphone, so apps there can hear you.</string>
+    <string>Farscreen shares this Mac's microphone with a Mac you view or control, when you turn on Share Microphone, so apps there can hear you.</string>
 </dict>
 </plist>
 EOF

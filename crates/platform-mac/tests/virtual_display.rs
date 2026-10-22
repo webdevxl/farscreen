@@ -21,7 +21,7 @@ fn wait_until(what: &str, mut done: impl FnMut() -> bool) {
 #[ignore = "creates a display"]
 fn a_virtual_display_comes_and_goes() {
     let retina = Mode { width: 6144, height: 2560, hidpi: true, refresh_hz: 60 };
-    let mut display = VirtualDisplay::create("LanKVM test", 0x7e57, retina).expect("create");
+    let mut display = VirtualDisplay::create("Farscreen test", 0x7e57, retina).expect("create");
     let id = display.id();
     wait_until("it is online", || online_displays().contains(&id));
     assert!(is_lankvm(id) && is_active(id));

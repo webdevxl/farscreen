@@ -8,6 +8,7 @@ enum Snapshot {
     static func run(into dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let core = CoreModel.shared
+        ConnectView.prompt = "198.51.100.20"
         for (appearance, suffix) in [(NSAppearance.Name.aqua, "light"), (.darkAqua, "dark")] {
             for item in SidebarItem.allCases {
                 core.loadSampleState(screenAllowed: item != .thisMac || suffix == "dark")
@@ -15,15 +16,15 @@ enum Snapshot {
                        appearance: appearance, to: dir.appendingPathComponent("\(item.rawValue)-\(suffix).png"))
             }
             render(
-                PairingRequestSheet(request: PairingRequest(id: 1, name: "Studio", address: "192.168.1.31", pin: "481920"))
+                PairingRequestSheet(request: PairingRequest(id: 1, name: "Studio", address: "198.51.100.31", pin: "481920"))
                     .environmentObject(core),
                 size: CGSize(width: 420, height: 380), appearance: appearance,
                 to: dir.appendingPathComponent("pairing-\(suffix).png"))
             render(
-                ZStack { Color.lkBackground; PinEntryView(hostLabel: "192.168.1.31", onSubmit: { _ in }, onCancel: {}) },
+                ZStack { Color.lkBackground; PinEntryView(hostLabel: "198.51.100.31", onSubmit: { _ in }, onCancel: {}) },
                 size: CGSize(width: 640, height: 460), appearance: appearance,
                 to: dir.appendingPathComponent("pin-entry-\(suffix).png"))
-            let info = SessionInfo(hostName: "Studio", hostId: "9f12:0ab3:77c1:e402", address: "192.168.1.31:47800", width: 3024, height: 1964, fps: 60, codec: "Hevc")
+            let info = SessionInfo(hostName: "Studio", hostId: "9f12:0ab3:77c1:e402", address: "198.51.100.31:47800", width: 3024, height: 1964, fps: 60, codec: "Hevc")
             let sample = SessionStats(fps: 60, mbps: 31.4, totalMs: 17.8, captureMs: 4.3, encodeMs: 4.1, networkMs: 0.9, decodeMs: 2.3,
                                       displayMs: 1.9, rttMs: 0.6, framesShown: 1200, framesLost: 0, keyframeRequests: 1,
                                       inputMs: 0.4, inputsSent: 5210)
@@ -34,11 +35,11 @@ enum Snapshot {
                 }.environmentObject(core),
                 size: CGSize(width: 520, height: 320), appearance: appearance,
                 to: dir.appendingPathComponent("hud-\(suffix).png"))
-            let refused = SessionModel(id: 0, target: "192.168.1.31")
-            refused.control = .refused(ControlReason.needsPermission, "Studio hasn't allowed LanKVM to control it yet. On that Mac, turn on LanKVM in System Settings → Privacy & Security → Accessibility.")
-            let inUse = SessionModel(id: 0, target: "192.168.1.31")
+            let refused = SessionModel(id: 0, target: "198.51.100.31")
+            refused.control = .refused(ControlReason.needsPermission, "Studio hasn't allowed Farscreen to control it yet. On that Mac, turn on Farscreen in System Settings → Privacy & Security → Accessibility.")
+            let inUse = SessionModel(id: 0, target: "198.51.100.31")
             inUse.control = .refused(ControlReason.inUse, "Mac mini is controlling Studio right now.")
-            let asking = SessionModel(id: 0, target: "192.168.1.31")
+            let asking = SessionModel(id: 0, target: "198.51.100.31")
             asking.control = .requesting
             render(
                 ZStack(alignment: .top) {
@@ -52,7 +53,7 @@ enum Snapshot {
                 },
                 size: CGSize(width: 640, height: 260), appearance: appearance,
                 to: dir.appendingPathComponent("control-banners-\(suffix).png"))
-            render(EndedView(target: "192.168.1.31", error: "That Mac hasn't allowed Screen Recording for LanKVM yet.", reconnect: {}, close: {}),
+            render(EndedView(target: "198.51.100.31", error: "That Mac hasn't allowed Screen Recording for Farscreen yet.", reconnect: {}, close: {}),
                    size: CGSize(width: 640, height: 420), appearance: appearance,
                    to: dir.appendingPathComponent("ended-\(suffix).png"))
             renderSessionControls(info: info, stats: sample, appearance: appearance, suffix: suffix, into: dir)
@@ -131,7 +132,7 @@ enum Snapshot {
     private static func renderDisplays(stats: SessionStats, appearance: NSAppearance.Name, suffix: String, into dir: URL) {
         let core = CoreModel.shared
         let display = RemoteDisplay(kind: .virtual, width: 6144, height: 2560, hidpi: true, refreshHz: 60, arrangement: .only)
-        let info = SessionInfo(hostName: "Studio", hostId: "9f12:0ab3:77c1:e402", address: "192.168.1.31:47800", width: 6144, height: 2560,
+        let info = SessionInfo(hostName: "Studio", hostId: "9f12:0ab3:77c1:e402", address: "198.51.100.31:47800", width: 6144, height: 2560,
                                fps: 60, codec: "Hevc", display: display)
         let switching = sampleSession(info: info)
         switching.display = .switching(request: 2, label: display.sizeText, fromConnect: false)
@@ -140,7 +141,7 @@ enum Snapshot {
                                  "“Studio” couldn't add the display: macOS refused to make it. Try again in a moment.", retry: display)
         let removed = sampleSession(info: info)
         removed.display = .failed(DisplayReason.removedByHost,
-                                  "Someone on “Studio” removed its LanKVM display, so this window shows its own screen.", retry: display)
+                                  "Someone on “Studio” removed its Farscreen display, so this window shows its own screen.", retry: display)
         let offered = sampleSession(info: info)
         offered.display = .offered(display)
         let undecodable = sampleSession(info: info)
@@ -283,7 +284,7 @@ enum Snapshot {
     }
 
     private static func sampleSession(info: SessionInfo) -> SessionModel {
-        let session = SessionModel(id: 0, target: "192.168.1.31")
+        let session = SessionModel(id: 0, target: "198.51.100.31")
         session.phase = .connected(info)
         return session
     }

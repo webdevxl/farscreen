@@ -157,7 +157,7 @@ impl VirtualDisplay {
     pub fn create(name: &str, serial: u32, mode: Mode) -> Result<Self> {
         mode.check()?;
         if !supported() {
-            bail!("this version of macOS has no virtual displays LanKVM can use");
+            bail!("this version of macOS has no virtual displays Farscreen can use");
         }
         let mut attempt = 1;
         loop {

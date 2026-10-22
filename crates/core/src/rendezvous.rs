@@ -285,7 +285,7 @@ impl Rendezvous {
         host.observed = None;
         host.state = match wanted {
             Some(server) => {
-                tracing::info!(server, "registering with the LanKVM server");
+                tracing::info!(server, "registering with the Farscreen server");
                 host.registration = Some(self.register(server, generation));
                 State::Connecting
             }
@@ -430,7 +430,7 @@ impl Rendezvous {
     async fn find(&self, server: &str) -> Result<SocketAddr> {
         let addr = resolve(server).await?;
         if self.shielded(addr) {
-            bail!("{addr} is the default LanKVM server's address, never contacted while testing (LANKVM_RENDEZVOUS can name it)");
+            bail!("{addr} is the default Farscreen server's address, never contacted while testing (LANKVM_RENDEZVOUS can name it)");
         }
         Ok(addr)
     }
@@ -479,7 +479,7 @@ impl Rendezvous {
                     if addr.is_none() || (unanswered >= UNREACHABLE_AFTER && server.parse::<SocketAddr>().is_err()) {
                         match self.find(&server).await {
                             Ok(found) if Some(found) != addr => {
-                                tracing::debug!(server, addr = %found, "found the LanKVM server");
+                                tracing::debug!(server, addr = %found, "found the Farscreen server");
                                 addr = Some(found);
                                 *resolved.lock().unwrap() = Some(found);
                                 self.found_host_server(generation, found);
@@ -488,7 +488,7 @@ impl Rendezvous {
                             Ok(_) => {}
                             Err(e) if addr.is_none() => {
                                 if state != State::Unreachable {
-                                    tracing::warn!(server, "couldn't find the LanKVM server: {e:#}");
+                                    tracing::warn!(server, "couldn't find the Farscreen server: {e:#}");
                                 }
                                 state = State::Unreachable;
                                 self.report(generation, state, None);
@@ -496,13 +496,13 @@ impl Rendezvous {
                                 unanswered += 1;
                                 continue;
                             }
-                            Err(e) => tracing::debug!(server, "couldn't look up the LanKVM server again: {e:#}"),
+                            Err(e) => tracing::debug!(server, "couldn't look up the Farscreen server again: {e:#}"),
                         }
                     }
                     let Some(to) = addr else { continue };
                     if unanswered >= UNREACHABLE_AFTER {
                         if state != State::Unreachable {
-                            tracing::warn!(server, "the LanKVM server isn't answering: trying again, less and less often");
+                            tracing::warn!(server, "the Farscreen server isn't answering: trying again, less and less often");
                             state = State::Unreachable;
                             self.report(generation, state, None);
                         }
@@ -517,7 +517,7 @@ impl Rendezvous {
                         Step::Registered => Message::Keepalive { id },
                     };
                     if let Err(e) = self.send_to(to, &request.encode()).await {
-                        tracing::debug!(%to, "couldn't send to the LanKVM server: {e}");
+                        tracing::debug!(%to, "couldn't send to the Farscreen server: {e}");
                     }
                     next = Instant::now() + resend_after(unanswered);
                     unanswered += 1;
@@ -543,7 +543,7 @@ impl Rendezvous {
                         }
                         Message::Registered { observed, .. } => {
                             if state != State::Registered {
-                                tracing::info!(server, %observed, "registered with the LanKVM server");
+                                tracing::info!(server, %observed, "registered with the Farscreen server");
                             }
                             (step, state, unanswered) = (Step::Registered, State::Registered, 0);
                             self.report(generation, state, Some(observed));
@@ -551,7 +551,7 @@ impl Rendezvous {
                         }
                         Message::Alive { observed } if step == Step::Registered => {
                             if state != State::Registered {
-                                tracing::info!(server, "the LanKVM server answers again");
+                                tracing::info!(server, "the Farscreen server answers again");
                             }
                             (state, unanswered) = (State::Registered, 0);
                             self.report(generation, state, Some(observed));
@@ -572,14 +572,14 @@ impl Rendezvous {
     async fn incoming(&self, server: SocketAddr, nonce: Nonce, token: Token, viewer: SocketAddr) {
         let id = self.identity.id();
         let Some(request) = self.network.gate.check_token(&id, &nonce, &token, viewer, now_unix()) else {
-            tracing::debug!(%viewer, "no answer to a connect request through the LanKVM server: not from a paired Mac");
+            tracing::debug!(%viewer, "no answer to a connect request through the Farscreen server: not from a paired Mac");
             return;
         };
         if let Err(e) = self.send_to(server, &Message::Accept { id, nonce }.encode()).await {
-            tracing::debug!(%server, "couldn't answer the LanKVM server: {e}");
+            tracing::debug!(%server, "couldn't answer the Farscreen server: {e}");
         }
         if request.first {
-            tracing::info!(%viewer, viewer_fp = %short_hex(&request.viewer), "a paired Mac connects through the LanKVM server");
+            tracing::info!(%viewer, viewer_fp = %short_hex(&request.viewer), "a paired Mac connects through the Farscreen server");
             self.punch_toward(viewer, nonce);
         }
     }
@@ -603,15 +603,15 @@ impl Rendezvous {
     async fn relay_offer(&self, server: SocketAddr, nonce: Nonce, token: Token, sid: SessionId, viewer: SocketAddr) {
         let id = self.identity.id();
         let Some(request) = self.network.gate.check_token(&id, &nonce, &token, viewer, now_unix()) else {
-            tracing::debug!(%viewer, "no answer to a relay request through the LanKVM server: not from a paired Mac");
+            tracing::debug!(%viewer, "no answer to a relay request through the Farscreen server: not from a paired Mac");
             return;
         };
         if request.first {
             let relay = self.network.gate.add_relay(server, sid);
-            tracing::info!(%viewer, %relay, viewer_fp = %short_hex(&request.viewer), "a paired Mac connects through the LanKVM server's relay");
+            tracing::info!(%viewer, %relay, viewer_fp = %short_hex(&request.viewer), "a paired Mac connects through the Farscreen server's relay");
         }
         if let Err(e) = self.send_to(server, &Message::RelayAccept { id, sid }.encode()).await {
-            tracing::debug!(%server, "couldn't answer the LanKVM server: {e}");
+            tracing::debug!(%server, "couldn't answer the Farscreen server: {e}");
         }
     }
 
@@ -631,14 +631,14 @@ impl Rendezvous {
     /// introducing them, and a host it sees elsewhere isn't the one meant (several paired Macs
     /// may each be asked, when the IP is new to this Mac).
     pub(crate) async fn connect(self: &Arc<Self>, name: &str, server: &str, id: RendezvousId, key: AccessKey, at: Option<IpAddr>) -> Result<Introduced> {
-        let unreachable = || anyhow!("Couldn't reach the LanKVM server at {server}.");
-        let offline = || anyhow!("{name} isn't reachable over the internet right now: LanKVM isn't running there, or its internet access is off.");
-        let didnt_answer = || anyhow!("{name} didn't answer through the LanKVM server.");
+        let unreachable = || anyhow!("Couldn't reach the Farscreen server at {server}.");
+        let offline = || anyhow!("{name} isn't reachable over the internet right now: Farscreen isn't running there, or its internet access is off.");
+        let didnt_answer = || anyhow!("{name} didn't answer through the Farscreen server.");
         let silence = |alive| if alive { didnt_answer() } else { unreachable() };
         let addr = match self.find(server).await {
             Ok(addr) => addr,
             Err(e) => {
-                tracing::info!(server, "couldn't find the LanKVM server: {e:#}");
+                tracing::info!(server, "couldn't find the Farscreen server: {e:#}");
                 return Err(unreachable());
             }
         };
@@ -647,8 +647,8 @@ impl Rendezvous {
         // sessions with it, as it can't introduce Macs over the internet.
         let gate = &self.network.gate;
         if !gate.is_internet(addr) || gate.is_relayed(addr) || addr.ip().is_unspecified() {
-            tracing::info!(server, %addr, "not using a LanKVM server that isn't on the internet");
-            return Err(anyhow!("{name} uses a LanKVM server at {server}, which isn't on the internet."));
+            tracing::info!(server, %addr, "not using a Farscreen server that isn't on the internet");
+            return Err(anyhow!("{name} uses a Farscreen server at {server}, which isn't on the internet."));
         }
         let lease = self.lease(addr);
 
@@ -694,11 +694,11 @@ impl Rendezvous {
             Answer::Silence { alive } => return Err(silence(alive)),
         };
         let relay = RelaySession::start(lease, sid);
-        tracing::info!(server, relay = %relay.addr, "connecting through the LanKVM server's relay");
+        tracing::info!(server, relay = %relay.addr, "connecting through the Farscreen server's relay");
         let connecting = self.network.endpoint.connect_with(self.network.internet_client_config(key), relay.addr, "lankvm").context("connect")?;
         match timeout(RELAY_HANDSHAKE_TIMEOUT, connecting).await {
             Ok(Ok(conn)) => Ok(Introduced { conn, relay: Some(relay) }),
-            Ok(Err(e)) => Err(e).context("connect through the LanKVM server"),
+            Ok(Err(e)) => Err(e).context("connect through the Farscreen server"),
             Err(_) => Err(didnt_answer()),
         }
     }
@@ -712,18 +712,18 @@ impl Rendezvous {
         let connecting = match self.network.endpoint.connect_with(self.network.internet_client_config(key), host, "lankvm") {
             Ok(connecting) => connecting,
             Err(e) => {
-                tracing::info!(%host, "can't connect there: {e}; asking the LanKVM server for a relay");
+                tracing::info!(%host, "can't connect there: {e}; asking the Farscreen server for a relay");
                 return None;
             }
         };
         match timeout_at(started + wait, connecting).await {
             Ok(Ok(conn)) => Some(conn),
             Ok(Err(e)) => {
-                tracing::info!(%host, "no direct path: {e}; asking the LanKVM server for a relay");
+                tracing::info!(%host, "no direct path: {e}; asking the Farscreen server for a relay");
                 None
             }
             Err(_) => {
-                tracing::info!(%host, "no direct path in time: asking the LanKVM server for a relay");
+                tracing::info!(%host, "no direct path in time: asking the Farscreen server for a relay");
                 None
             }
         }
@@ -745,7 +745,7 @@ impl Rendezvous {
             tokio::select! {
                 _ = sleep_until(next), if sent < REQUEST_SENDS => {
                     if let Err(e) = self.send_to(server, &request).await {
-                        tracing::debug!(%server, "couldn't send to the LanKVM server: {e}");
+                        tracing::debug!(%server, "couldn't send to the Farscreen server: {e}");
                     }
                     if !alive {
                         let _ = self.send_to(server, &probe).await;
@@ -799,7 +799,7 @@ async fn dispatch(rendezvous: Weak<Rendezvous>, mut control: mpsc::Receiver<(Soc
             // from now on, on either side.
             Message::RelayEnd { sid } => {
                 if let Some(relay) = rendezvous.network.gate.remove_relay(server, &sid) {
-                    tracing::info!(%server, %relay, "the LanKVM server ended a relay session");
+                    tracing::info!(%server, %relay, "the Farscreen server ended a relay session");
                 }
             }
             // Requests, which only servers take.

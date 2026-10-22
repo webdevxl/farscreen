@@ -439,13 +439,13 @@ impl DhtRendezvous {
                 return Err(NotListed("No BitTorrent DHT node answered: UDP may be blocked on this network.".into()).into());
             }
             return Err(NotListed(format!(
-                "{name} isn't on the BitTorrent DHT: LanKVM isn't running there, or its internet access (or the DHT option) is off."
+                "{name} isn't on the BitTorrent DHT: Farscreen isn't running there, or its internet access (or the DHT option) is off."
             ))
             .into());
         };
         if note.at + NOTE_FRESH_SECS < now {
             return Err(NotListed(format!(
-                "{name} hasn't been on the BitTorrent DHT for {}: LanKVM isn't running there, or its internet access is off.",
+                "{name} hasn't been on the BitTorrent DHT for {}: Farscreen isn't running there, or its internet access is off.",
                 ago(now.saturating_sub(note.at))
             ))
             .into());
@@ -578,7 +578,7 @@ impl DhtRendezvous {
         if wait.stored == 0 && wait.stores.is_empty() {
             bail!("Couldn't leave {name} a request on the BitTorrent DHT.");
         }
-        Err(anyhow!("{name} didn't answer through the BitTorrent DHT. LanKVM may not be running there, or its internet access is off."))
+        Err(anyhow!("{name} didn't answer through the BitTorrent DHT. Farscreen may not be running there, or its internet access is off."))
     }
 }
 

@@ -131,7 +131,7 @@ static OSStatus PlugInProperty(const AudioObjectPropertyAddress *a, UInt32 quali
     case kAudioObjectPropertyBaseClass: *out = U32(kAudioObjectClassID); return noErr;
     case kAudioObjectPropertyClass: *out = U32(kAudioPlugInClassID); return noErr;
     case kAudioObjectPropertyOwner: *out = U32(kAudioObjectUnknown); return noErr;
-    case kAudioObjectPropertyManufacturer: *out = String(CFSTR("LanKVM")); return noErr;
+    case kAudioObjectPropertyManufacturer: *out = String(CFSTR("Farscreen")); return noErr;
     case kAudioObjectPropertyOwnedObjects:
     case kAudioPlugInPropertyDeviceList: *out = Ids(2, kObjectMic, kObjectFeed); return noErr;
     case kAudioPlugInPropertyTranslateUIDToDevice: {
@@ -159,9 +159,9 @@ static OSStatus DeviceProperty(AudioObjectID device, const AudioObjectPropertyAd
     case kAudioObjectPropertyClass: *out = U32(kAudioDeviceClassID); return noErr;
     case kAudioObjectPropertyOwner: *out = U32(kObjectPlugIn); return noErr;
     case kAudioObjectPropertyName:
-        *out = String(mic ? CFSTR("LanKVM Microphone") : CFSTR("LanKVM Microphone Feed"));
+        *out = String(mic ? CFSTR("Farscreen Microphone") : CFSTR("Farscreen Microphone Feed"));
         return noErr;
-    case kAudioObjectPropertyManufacturer: *out = String(CFSTR("LanKVM")); return noErr;
+    case kAudioObjectPropertyManufacturer: *out = String(CFSTR("Farscreen")); return noErr;
     case kAudioObjectPropertyOwnedObjects:
     case kAudioDevicePropertyStreams:
         *out = inScope ? Ids(1, StreamOf(device), 0) : Ids(0, 0, 0);
@@ -212,7 +212,7 @@ static OSStatus StreamProperty(AudioObjectID stream, const AudioObjectPropertyAd
     case kAudioObjectPropertyOwner: *out = U32(DeviceOf(stream)); return noErr;
     case kAudioObjectPropertyOwnedObjects: *out = Ids(0, 0, 0); return noErr;
     case kAudioObjectPropertyName:
-        *out = String(IsInput(stream) ? CFSTR("LanKVM Microphone") : CFSTR("LanKVM Microphone Feed"));
+        *out = String(IsInput(stream) ? CFSTR("Farscreen Microphone") : CFSTR("Farscreen Microphone Feed"));
         return noErr;
     case kAudioStreamPropertyIsActive: *out = U32(atomic_load(&gStreamActive[Slot(stream)])); return noErr;
     case kAudioStreamPropertyDirection: *out = U32(IsInput(stream) ? 1 : 0); return noErr;

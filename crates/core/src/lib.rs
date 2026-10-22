@@ -278,7 +278,7 @@ impl Core {
         let identity = DeviceIdentity::load_or_create(&dir)?;
         let network = {
             let _guard = rt.enter();
-            bind_network(port, &identity).with_context(|| format!("Can't listen on UDP port {port}. Is LanKVM already running?"))?
+            bind_network(port, &identity).with_context(|| format!("Can't listen on UDP port {port}. Is Farscreen already running?"))?
         };
         if loopback_is_internet {
             tracing::warn!("loopback counts as the internet (LANKVM_TEST_LOOPBACK_IS_INTERNET)");
@@ -310,10 +310,10 @@ impl Core {
         let settings_path = dir.join("host-settings.json");
         let settings = control::HostSettings::load(&settings_path);
         if let Some(server) = &rendezvous_override {
-            tracing::warn!(server, "the LanKVM server is set for this run, not by the setting (LANKVM_RENDEZVOUS; \"\": none)");
+            tracing::warn!(server, "the Farscreen server is set for this run, not by the setting (LANKVM_RENDEZVOUS; \"\": none)");
         }
         if force_relay {
-            tracing::warn!("connections to paired Macs go through the LanKVM server's relay (LANKVM_TEST_FORCE_RELAY)");
+            tracing::warn!("connections to paired Macs go through the Farscreen server's relay (LANKVM_TEST_FORCE_RELAY)");
         }
         let rendezvous_server = rendezvous_override.clone().unwrap_or_else(|| settings.rendezvous_server.clone());
         let rendezvous = Rendezvous::start(
@@ -442,7 +442,7 @@ impl Core {
         self.dht.shutdown();
         // Tell every peer (viewers of this Mac included) the connection is over, rather than
         // leaving them to time out, and give that a moment to go out.
-        self.network.endpoint.close(0u32.into(), b"LanKVM quit");
+        self.network.endpoint.close(0u32.into(), b"Farscreen quit");
         let endpoint = self.network.endpoint.clone();
         let _ = self.rt.block_on(async { tokio::time::timeout(std::time::Duration::from_millis(300), endpoint.wait_idle()).await });
         // Then delete the port mapping on the router (mDNSResponder does that without the
